@@ -21,8 +21,8 @@ type CardsData []struct {
 			Water int `json:"water"`
 		} `json:"thresholds"`
 	} `json:"guardian"`
-	Sets     []struct {
-		Name       string    `json:"name"`
+	Sets []struct {
+		Name string `json:"name"`
 	} `json:"sets"`
 }
 

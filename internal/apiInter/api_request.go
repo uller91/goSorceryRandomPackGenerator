@@ -1,13 +1,11 @@
 package apiInter
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"encoding/json"
-
 )
-
 
 func RequestData(url string) []byte {
 
@@ -29,7 +27,6 @@ func RequestData(url string) []byte {
 	//fmt.Printf("%s", body)
 	return data
 }
-
 
 func RequestCard(url string) CardsData {
 	data := RequestData(url)
