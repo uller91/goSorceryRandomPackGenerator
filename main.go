@@ -5,6 +5,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/uller91/goSorceryDraftDB/internal/apiInter"
 	"os"
+	"strings"
 )
 
 type config struct {
@@ -13,8 +14,8 @@ type config struct {
 
 func main() {
 	godotenv.Load()
-	testVar := os.Getenv("TEST_VAR")
-	fmt.Println(testVar)
+	//testVar := os.Getenv("TEST_VAR")
+	//fmt.Println(testVar)
 
 	var cfg config
 	var st state
@@ -25,13 +26,6 @@ func main() {
 	//db, err = ...
 	//st.database = ...
 
-	/*
-		cards := apiInter.RequestCard(apiUrl)
-		dbSize := len(cards)
-		fmt.Println(cards[0])
-		fmt.Println(cards[dbSize-1])
-	*/
-
 	var cmds commands
 	handlers := make(map[string]func(*state, command) error)
 	descriptions := make(map[string]string)
@@ -39,34 +33,41 @@ func main() {
 	cmds.descriptions = descriptions
 	st.commands = &cmds
 
-	cmds.register("help", handlerHelp, "helps") //add description as a constant
+	cmds.register("help", handlerHelp, descriptionHelp) //add description as a constant
+	cmds.register("update", handlerUpdate, descriptionUpdate) //add description as a constant
 
-	cmd := command{name: "help"}
+	//single command test
+	/*
+		cmd := command{name: "help"}
+		err := cmds.run(&st, cmd)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	*/
+
+	args := os.Args[:]
+	if len(args) < 2 {
+		//err := fmt.Errorf("Not enough arguments")
+		//fmt.Println(err.Error())
+		fmt.Println("Welcome to the Sorcery TCG Draft DB. To see the list of available commands use the \"help\" command.")
+		os.Exit(0)
+	}
+
+	commandName := strings.ToLower(args[1])
+	commandArgs := []string{}
+	if len(args) > 2 {
+		commandArgs = args[2:]
+		for i := range commandArgs {
+			commandArgs[i] = strings.ToLower(commandArgs[i])
+		}
+	}
+	cmd := command{name: commandName, arguments: commandArgs}
+
 	err := cmds.run(&st, cmd)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	/*
-		args := os.Args[:]
-		if len(args) < 2 {
-			err := fmt.Errorf("Not enough arguments!")
-			fmt.Println(err.Error())
-			os.Exit(1)
-		}
-
-		commandName := args[1]
-		commandArgs := []string{}
-		if len(args) > 2 {
-			commandArgs = args[2:]
-		}
-		cmd := command{name: commandName, arguments: commandArgs}
-
-		err = cmds.run(&st, cmd)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-	*/
 }

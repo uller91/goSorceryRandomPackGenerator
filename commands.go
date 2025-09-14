@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/uller91/goSorceryDraftDB/internal/apiInter"
 )
 
 type state struct {
@@ -40,14 +41,44 @@ func (c *commands) register(name string, f func(*state, command) error, d string
 	c.descriptions[name] = d
 }
 
-// not finished - error handling and descriptions with arguments
+const (
+	descriptionHelp = "Shows the list of commands (help) or their description (help command)"
+)
+
 func handlerHelp(s *state, cmd command) error {
-	fmt.Println("List of available commands:")
-	for command, _ := range s.commands.handlers {
-		fmt.Println(command)
-		fmt.Println(s.commands.descriptions[command])
+	if len(cmd.arguments) == 0 {
+		fmt.Println("List of available commands:")
+		fmt.Println("")
+		for command, _ := range s.commands.handlers {
+			fmt.Println(command)
+		}
+		fmt.Println("")
+		fmt.Println("To show the command description use \"help command\"")
+	} else if len(cmd.arguments) == 1 {
+		if discription, ok := s.commands.descriptions[cmd.arguments[0]]; ok {
+			fmt.Printf("Command \"%s\"\n", cmd.arguments[0])
+			fmt.Println(discription)
+		} else {
+			return errors.New("No command with this name is registered")
+		}
+	} else {
+		return errors.New("Too many arguments")
 	}
 
-	fmt.Println("")
+	return nil
+}
+
+
+//update description and error handling (in api request as well)
+const (
+	descriptionUpdate = "..."
+)
+
+func handlerUpdate(s *state, cmd command) error {
+	cards := apiInter.RequestCard(s.config.BaseUrl)
+	dbSize := len(cards)
+	fmt.Println(cards[0])
+	fmt.Println(cards[dbSize-1])
+	
 	return nil
 }
