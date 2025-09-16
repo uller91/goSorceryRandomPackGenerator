@@ -7,12 +7,12 @@ import (
 	"net/http"
 )
 
-func RequestData(url string) []byte {
+func RequestData(url string) ([]byte, error) {
 
 	//request for a data
 	res, err := http.Get(url)
 	if err != nil {
-		fmt.Printf("Error: %v\n", err)
+		return nil, err
 	}
 
 	data, err := io.ReadAll(res.Body)
@@ -21,22 +21,25 @@ func RequestData(url string) []byte {
 		fmt.Printf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, data)
 	}
 	if err != nil {
-		fmt.Printf("Error: %v\n", err)
+		return nil, err
 	}
 
 	//fmt.Printf("%s", body)
-	return data
+	return data, nil
 }
 
-func RequestCard(url string) CardsData {
-	data := RequestData(url)
+func RequestCard(url string) (CardsData, error) {
+	data, err := RequestData(url)
+	if err != nil {
+		return nil, err
+	}
 
 	//unmarshal data
 	CardsData := CardsData{}
-	err := json.Unmarshal(data, &CardsData)
+	err = json.Unmarshal(data, &CardsData)
 	if err != nil {
-		fmt.Printf("Error: %v\n", err)
+		return nil, err
 	}
 
-	return CardsData
+	return CardsData, nil
 }

@@ -74,11 +74,31 @@ const (
 	descriptionUpdate = "..."
 )
 
+//current db size - 649
 func handlerUpdate(s *state, cmd command) error {
-	cards := apiInter.RequestCard(s.config.BaseUrl)
+	cards, err := apiInter.RequestCard(s.config.BaseUrl)
+	if err != nil {
+		return err
+	}
+
 	dbSize := len(cards)
-	fmt.Println(cards[0])
-	fmt.Println(cards[dbSize-1])
-	
+
+	//fmt.Println(dbSize)
+	//fmt.Println(cards[0])
+	fmt.Println(cards[0].Name)
+	fmt.Println(cards[0].Guardian.Rarity)
+	fmt.Println(cards[0].Guardian.Type)
+	fmt.Println(cards[0].Sets)
+	//fmt.Println(cards[dbSize-1])
+	fmt.Println(cards[dbSize-1].Name)
+	fmt.Println(cards[dbSize-1].Guardian.Rarity)
+	fmt.Println(cards[dbSize-1].Guardian.Type)
+	fmt.Println(cards[dbSize-1].Sets)
+
+	fmt.Println(cards[dbSize-50].Name)
+	fmt.Println(cards[dbSize-50].Guardian.Rarity)
+	fmt.Println(cards[dbSize-50].Guardian.Type)
+	fmt.Println(cards[dbSize-50].Sets)
+
 	return nil
 }
