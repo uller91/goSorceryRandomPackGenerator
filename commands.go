@@ -68,13 +68,12 @@ func handlerHelp(s *state, cmd command) error {
 	return nil
 }
 
-
-//update description and error handling (in api request as well)
+// update description
 const (
-	descriptionUpdate = "..."
+	descriptionUpdate = "Updates an internal DB sending the API requiest to api.sorcerytcg.com"
 )
 
-//current db size - 649
+// current db size - 649
 func handlerUpdate(s *state, cmd command) error {
 	cards, err := apiInter.RequestCard(s.config.BaseUrl)
 	if err != nil {
@@ -88,17 +87,17 @@ func handlerUpdate(s *state, cmd command) error {
 	fmt.Println(cards[0].Name)
 	fmt.Println(cards[0].Guardian.Rarity)
 	fmt.Println(cards[0].Guardian.Type)
-	fmt.Println(cards[0].Sets)
+	fmt.Println(cards[0].Sets[0].Name)
 	//fmt.Println(cards[dbSize-1])
 	fmt.Println(cards[dbSize-1].Name)
 	fmt.Println(cards[dbSize-1].Guardian.Rarity)
 	fmt.Println(cards[dbSize-1].Guardian.Type)
-	fmt.Println(cards[dbSize-1].Sets)
+	fmt.Println(cards[dbSize-1].Sets[0].Name)
 
 	fmt.Println(cards[dbSize-50].Name)
 	fmt.Println(cards[dbSize-50].Guardian.Rarity)
 	fmt.Println(cards[dbSize-50].Guardian.Type)
-	fmt.Println(cards[dbSize-50].Sets)
+	fmt.Println(cards[dbSize-50].Sets[0].Name)
 
 	return nil
 }

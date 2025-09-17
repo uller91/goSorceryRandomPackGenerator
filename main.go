@@ -10,6 +10,8 @@ import (
 
 type config struct {
 	BaseUrl string
+	//DbSize
+	//Sets?
 }
 
 func main() {
@@ -33,7 +35,7 @@ func main() {
 	cmds.descriptions = descriptions
 	st.commands = &cmds
 
-	cmds.register("help", handlerHelp, descriptionHelp) //add description as a constant
+	cmds.register("help", handlerHelp, descriptionHelp)       //add description as a constant
 	cmds.register("update", handlerUpdate, descriptionUpdate) //add description as a constant
 
 	//single command test
