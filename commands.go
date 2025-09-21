@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/uller91/goSorceryDraftDB/internal/apiInter"
+	"github.com/uller91/goSorceryDraftDB/internal/database"
+	"time"
 )
 
 type state struct {
-	config *config
-	//database *database.Queries
+	config   *config
+	database *database.Queries
 	commands *commands
 }
 
@@ -80,24 +84,41 @@ func handlerUpdate(s *state, cmd command) error {
 		return err
 	}
 
-	dbSize := len(cards)
+	//dbSize := len(cards)
 
 	//fmt.Println(dbSize)
 	//fmt.Println(cards[0])
+
+	//Apprentice Wizard
+	fmt.Println("Card found:")
 	fmt.Println(cards[0].Name)
 	fmt.Println(cards[0].Guardian.Rarity)
 	fmt.Println(cards[0].Guardian.Type)
 	fmt.Println(cards[0].Sets[0].Name)
-	//fmt.Println(cards[dbSize-1])
-	fmt.Println(cards[dbSize-1].Name)
-	fmt.Println(cards[dbSize-1].Guardian.Rarity)
-	fmt.Println(cards[dbSize-1].Guardian.Type)
-	fmt.Println(cards[dbSize-1].Sets[0].Name)
 
-	fmt.Println(cards[dbSize-50].Name)
-	fmt.Println(cards[dbSize-50].Guardian.Rarity)
-	fmt.Println(cards[dbSize-50].Guardian.Type)
-	fmt.Println(cards[dbSize-50].Sets[0].Name)
+	/*
+		fmt.Println(cards[dbSize-1].Name)
+		fmt.Println(cards[dbSize-1].Guardian.Rarity)
+		fmt.Println(cards[dbSize-1].Guardian.Type)
+		fmt.Println(cards[dbSize-1].Sets[0].Name)
+
+		fmt.Println(cards[dbSize-50].Name)
+		fmt.Println(cards[dbSize-50].Guardian.Rarity)
+		fmt.Println(cards[dbSize-50].Guardian.Type)
+		fmt.Println(cards[dbSize-50].Sets[0].Name)
+	*/
+
+	//adding 1 card
+	param := database.CreateCardParams{ID: uuid.New(), CreatedAt: time.Now(), UpdatedAt: time.Now(), Name: cards[0].Name, Rarity: cards[0].Guardian.Rarity, Type: cards[0].Guardian.Type}
+	user, err := s.database.CreateCard(context.Background(), param)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Card added to db:")
+	fmt.Println(user.Name)
+	fmt.Println(user.Rarity)
+	fmt.Println(user.Type)
 
 	return nil
 }

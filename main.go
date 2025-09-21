@@ -1,9 +1,13 @@
 package main
 
+import _ "github.com/lib/pq"
+
 import (
+	"database/sql"
 	"fmt"
 	"github.com/joho/godotenv"
 	"github.com/uller91/goSorceryDraftDB/internal/apiInter"
+	"github.com/uller91/goSorceryDraftDB/internal/database"
 	"os"
 	"strings"
 )
@@ -16,8 +20,7 @@ type config struct {
 
 func main() {
 	godotenv.Load()
-	//testVar := os.Getenv("TEST_VAR")
-	//fmt.Println(testVar)
+	dbURL := os.Getenv("CONNECTION_STRING")
 
 	var cfg config
 	var st state
@@ -25,8 +28,8 @@ func main() {
 	cfg.BaseUrl = apiInter.BaseUrl
 	st.config = &cfg
 
-	//db, err = ...
-	//st.database = ...
+	db, err := sql.Open("postgres", dbURL)
+	st.database = database.New(db) //database.Queries struct
 
 	var cmds commands
 	handlers := make(map[string]func(*state, command) error)
@@ -66,7 +69,7 @@ func main() {
 	}
 	cmd := command{name: commandName, arguments: commandArgs}
 
-	err := cmds.run(&st, cmd)
+	err = cmds.run(&st, cmd)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
