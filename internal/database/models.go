@@ -18,3 +18,11 @@ type Card struct {
 	Rarity    string
 	Type      string
 }
+
+type Set struct {
+	ID        uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Name      string
+	CardID    uuid.UUID
+}

@@ -9,3 +9,15 @@ VALUES (
     $6
 )
 RETURNING *;
+
+-- name: CardsReset :exec
+DELETE FROM cards;
+
+-- name: GetCardByName :one
+SELECT * FROM cards WHERE NAME = $1;
+
+-- name: GetCardsByRarity :many
+SELECT * FROM cards WHERE rarity = $1;
+
+-- name: GetCardsByType :many
+SELECT * FROM cards WHERE type = $1;

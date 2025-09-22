@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/uller91/goSorceryDraftDB/internal/apiInter"
 	"github.com/uller91/goSorceryDraftDB/internal/database"
 	"time"
@@ -45,6 +46,7 @@ func (c *commands) register(name string, f func(*state, command) error, d string
 	c.descriptions[name] = d
 }
 
+// Help
 const (
 	descriptionHelp = "Shows the list of commands (help) or their description (help command)"
 )
@@ -72,53 +74,119 @@ func handlerHelp(s *state, cmd command) error {
 	return nil
 }
 
-// update description
+// Update
 const (
 	descriptionUpdate = "Updates an internal DB sending the API requiest to api.sorcerytcg.com"
 )
 
 // current db size - 649
 func handlerUpdate(s *state, cmd command) error {
+	if len(cmd.arguments) != 0 {
+		return errors.New("0 arguments are expected")
+	}
+
+	fmt.Println("Initializing the SorceryDB update...")
+	fmt.Println("")
+	fmt.Printf("Sending the API requiest to %v...\n", s.config.BaseUrl)
+	fmt.Println("")
+
 	cards, err := apiInter.RequestCard(s.config.BaseUrl)
 	if err != nil {
 		return err
 	}
 
-	//dbSize := len(cards)
+	dbSize := len(cards)
+	fmt.Printf("Cards found: %v\n", dbSize)
+	fmt.Println("")
 
-	//fmt.Println(dbSize)
-	//fmt.Println(cards[0])
+	fmt.Println("Updating the DB...")
+	fmt.Println("")
 
-	//Apprentice Wizard
-	fmt.Println("Card found:")
-	fmt.Println(cards[0].Name)
-	fmt.Println(cards[0].Guardian.Rarity)
-	fmt.Println(cards[0].Guardian.Type)
-	fmt.Println(cards[0].Sets[0].Name)
+	cardsAdded := 0
+	cardsUpdated := 0
 
-	/*
-		fmt.Println(cards[dbSize-1].Name)
-		fmt.Println(cards[dbSize-1].Guardian.Rarity)
-		fmt.Println(cards[dbSize-1].Guardian.Type)
-		fmt.Println(cards[dbSize-1].Sets[0].Name)
+	for _, card := range cards {
+		//add card
+		paramCard := database.CreateCardParams{ID: uuid.New(), CreatedAt: time.Now(), UpdatedAt: time.Now(), Name: card.Name, Rarity: card.Guardian.Rarity, Type: card.Guardian.Type}
+		cardCreated, err := s.database.CreateCard(context.Background(), paramCard)
+		if err != nil {
+			if pqError, ok := err.(*pq.Error); ok && pqError.Code == "23505" {
+				//fmt.Printf("%v card already exist in DB\n", card.Name)
+				cardsUpdated += 1
+			} else {
+				return err
+			}
+		} else {
+			fmt.Printf("\"%v\" added in the Cards table\n", cardCreated.Name)
+			//fmt.Println(cardCreated.Rarity)
+			//fmt.Println(cardCreated.Type)
+			cardsAdded += 1
+		}
 
-		fmt.Println(cards[dbSize-50].Name)
-		fmt.Println(cards[dbSize-50].Guardian.Rarity)
-		fmt.Println(cards[dbSize-50].Guardian.Type)
-		fmt.Println(cards[dbSize-50].Sets[0].Name)
-	*/
+		//add set+card
+		for _, set := range card.Sets {
+			paramSet := database.CreateSetAndCardParams{ID: uuid.New(), CreatedAt: time.Now(), UpdatedAt: time.Now(), Name: set.Name, CardID: cardCreated.ID}
+			setCardCreated, err := s.database.CreateSetAndCard(context.Background(), paramSet)
 
-	//adding 1 card
-	param := database.CreateCardParams{ID: uuid.New(), CreatedAt: time.Now(), UpdatedAt: time.Now(), Name: cards[0].Name, Rarity: cards[0].Guardian.Rarity, Type: cards[0].Guardian.Type}
-	user, err := s.database.CreateCard(context.Background(), param)
-	if err != nil {
-		return err
+			if err != nil {
+				pqError, ok := err.(*pq.Error)
+				if ok && pqError.Code == "23503" {
+					continue
+				} else {
+					return err
+				}
+			} else {
+				fmt.Printf("Combination of Set: \"%v\" and Card: \"%v\" added in the Sets table\n", setCardCreated.Name, cardCreated.Name)
+			}
+		}
 	}
 
-	fmt.Println("Card added to db:")
-	fmt.Println(user.Name)
-	fmt.Println(user.Rarity)
-	fmt.Println(user.Type)
+	fmt.Println("")
+	fmt.Printf("Cards added in the DB: %v\n", cardsAdded)
+	fmt.Printf("Cards already in the DB: %v\n", cardsUpdated)
+	fmt.Println("")
+
+	//Apprentice Wizard
+	/*
+		fmt.Println("Card found:")
+		fmt.Println(cards[0].Name)
+		fmt.Println(cards[0].Guardian.Rarity)
+		fmt.Println(cards[0].Guardian.Type)
+		fmt.Println(cards[0].Sets[0].Name)
+	*/
+
+	fmt.Println("SorceryDB update successfully finished")
+
+	return nil
+}
+
+// Reset
+const (
+	descriptionReset = "Deletes all the entries from the DB"
+)
+
+func handlerReset(s *state, cmd command) error {
+	if len(cmd.arguments) != 0 {
+		return errors.New("0 arguments are expected")
+	}
+
+	err := s.database.SetsReset(context.Background())
+	if err != nil {
+		if pqError, ok := err.(*pq.Error); ok {
+			return pqError
+		} else {
+			return err
+		}
+	}
+
+	err = s.database.CardsReset(context.Background())
+	if err != nil {
+		if pqError, ok := err.(*pq.Error); ok {
+			return pqError
+		} else {
+			return err
+		}
+	}
 
 	return nil
 }

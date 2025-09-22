@@ -29,6 +29,10 @@ func main() {
 	st.config = &cfg
 
 	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	st.database = database.New(db) //database.Queries struct
 
 	var cmds commands
@@ -40,6 +44,7 @@ func main() {
 
 	cmds.register("help", handlerHelp, descriptionHelp)       //add description as a constant
 	cmds.register("update", handlerUpdate, descriptionUpdate) //add description as a constant
+	cmds.register("reset", handlerReset, descriptionReset)
 
 	//single command test
 	/*

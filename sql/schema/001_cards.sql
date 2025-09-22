@@ -1,5 +1,3 @@
--- How to track sets in cards?
-
 -- +goose Up
 CREATE TABLE cards (
     id uuid PRIMARY KEY,

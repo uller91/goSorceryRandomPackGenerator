@@ -12,6 +12,15 @@ import (
 	"github.com/google/uuid"
 )
 
+const cardsReset = `-- name: CardsReset :exec
+DELETE FROM cards
+`
+
+func (q *Queries) CardsReset(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, cardsReset)
+	return err
+}
+
 const createCard = `-- name: CreateCard :one
 INSERT INTO cards (id, created_at, updated_at, name, rarity, type)
 VALUES (
@@ -53,4 +62,90 @@ func (q *Queries) CreateCard(ctx context.Context, arg CreateCardParams) (Card, e
 		&i.Type,
 	)
 	return i, err
+}
+
+const getCardByName = `-- name: GetCardByName :one
+SELECT id, created_at, updated_at, name, rarity, type FROM cards WHERE NAME = $1
+`
+
+func (q *Queries) GetCardByName(ctx context.Context, name string) (Card, error) {
+	row := q.db.QueryRowContext(ctx, getCardByName, name)
+	var i Card
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Name,
+		&i.Rarity,
+		&i.Type,
+	)
+	return i, err
+}
+
+const getCardsByRarity = `-- name: GetCardsByRarity :many
+SELECT id, created_at, updated_at, name, rarity, type FROM cards WHERE rarity = $1
+`
+
+func (q *Queries) GetCardsByRarity(ctx context.Context, rarity string) ([]Card, error) {
+	rows, err := q.db.QueryContext(ctx, getCardsByRarity, rarity)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Card
+	for rows.Next() {
+		var i Card
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.Rarity,
+			&i.Type,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCardsByType = `-- name: GetCardsByType :many
+SELECT id, created_at, updated_at, name, rarity, type FROM cards WHERE type = $1
+`
+
+func (q *Queries) GetCardsByType(ctx context.Context, type_ string) ([]Card, error) {
+	rows, err := q.db.QueryContext(ctx, getCardsByType, type_)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Card
+	for rows.Next() {
+		var i Card
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.Rarity,
+			&i.Type,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
