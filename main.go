@@ -14,8 +14,9 @@ import (
 
 type config struct {
 	BaseUrl string
-	//DbSize
-	//Sets?
+	//Sets []string
+	//Types []string
+	//Rarities []string
 }
 
 func main() {

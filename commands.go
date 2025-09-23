@@ -8,6 +8,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/uller91/goSorceryDraftDB/internal/apiInter"
 	"github.com/uller91/goSorceryDraftDB/internal/database"
+	"slices"
 	"time"
 )
 
@@ -44,6 +45,12 @@ func (c *commands) run(s *state, cmd command) error {
 func (c *commands) register(name string, f func(*state, command) error, d string) {
 	c.handlers[name] = f
 	c.descriptions[name] = d
+}
+
+func addToCollection(sl *[]string, st string) {
+	if !slices.Contains(*sl, st) {
+		*sl = append(*sl, st)
+	}
 }
 
 // Help
@@ -85,6 +92,10 @@ func handlerUpdate(s *state, cmd command) error {
 		return errors.New("0 arguments are expected")
 	}
 
+	var newSets []string
+	var newTypes []string
+	var newRarities []string
+
 	fmt.Println("Initializing the SorceryDB update...")
 	fmt.Println("")
 	fmt.Printf("Sending the API requiest to %v...\n", s.config.BaseUrl)
@@ -100,7 +111,6 @@ func handlerUpdate(s *state, cmd command) error {
 	fmt.Println("")
 
 	fmt.Println("Updating the DB...")
-	fmt.Println("")
 
 	cardsAdded := 0
 	cardsUpdated := 0
@@ -118,15 +128,16 @@ func handlerUpdate(s *state, cmd command) error {
 			}
 		} else {
 			fmt.Printf("\"%v\" added in the Cards table\n", cardCreated.Name)
-			//fmt.Println(cardCreated.Rarity)
-			//fmt.Println(cardCreated.Type)
 			cardsAdded += 1
+
+			addToCollection(&newTypes, cardCreated.Type)
+			addToCollection(&newRarities, cardCreated.Rarity)
 		}
 
 		//add set+card
 		for _, set := range card.Sets {
-			paramSet := database.CreateSetAndCardParams{ID: uuid.New(), CreatedAt: time.Now(), UpdatedAt: time.Now(), Name: set.Name, CardID: cardCreated.ID}
-			setCardCreated, err := s.database.CreateSetAndCard(context.Background(), paramSet)
+			paramSets := database.CreateSetAndCardParams{ID: uuid.New(), CreatedAt: time.Now(), UpdatedAt: time.Now(), Name: set.Name, CardID: cardCreated.ID}
+			_, err := s.database.CreateSetAndCard(context.Background(), paramSets)
 
 			if err != nil {
 				pqError, ok := err.(*pq.Error)
@@ -135,8 +146,51 @@ func handlerUpdate(s *state, cmd command) error {
 				} else {
 					return err
 				}
-			} else {
+			} /* else {
 				fmt.Printf("Combination of Set: \"%v\" and Card: \"%v\" added in the Sets table\n", setCardCreated.Name, cardCreated.Name)
+			} */
+
+			addToCollection(&newSets, set.Name)
+		}
+	}
+
+	//fmt.Println(newType)
+	//fmt.Println(newRarity)
+	//fmt.Println(newSet)
+
+	//add new sets
+	if newSets != nil {
+		fmt.Println("")
+		fmt.Println("New sets added to the DB:")
+
+		for _, set := range newSets {
+			paramSet := database.CreateSetParams{ID: uuid.New(), CreatedAt: time.Now(), UpdatedAt: time.Now(), Name: set}
+			_, err := s.database.CreateSet(context.Background(), paramSet)
+			if err != nil {
+				return err
+			}
+			fmt.Println(set)
+		}
+	}
+
+	//add new types
+	if newTypes != nil {
+		for _, tpe := range newTypes {
+			paramType := database.CreateTypeParams{ID: uuid.New(), CreatedAt: time.Now(), UpdatedAt: time.Now(), Name: tpe}
+			_, err := s.database.CreateType(context.Background(), paramType)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	//add new rarities
+	if newRarities != nil {
+		for _, rarity := range newRarities {
+			paramType := database.CreateRarityParams{ID: uuid.New(), CreatedAt: time.Now(), UpdatedAt: time.Now(), Name: rarity}
+			_, err := s.database.CreateRarity(context.Background(), paramType)
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -170,7 +224,34 @@ func handlerReset(s *state, cmd command) error {
 		return errors.New("0 arguments are expected")
 	}
 
-	err := s.database.SetsReset(context.Background())
+	err := s.database.RaritylistReset(context.Background())
+	if err != nil {
+		if pqError, ok := err.(*pq.Error); ok {
+			return pqError
+		} else {
+			return err
+		}
+	}
+
+	err = s.database.TypelistReset(context.Background())
+	if err != nil {
+		if pqError, ok := err.(*pq.Error); ok {
+			return pqError
+		} else {
+			return err
+		}
+	}
+
+	err = s.database.SetlistReset(context.Background())
+	if err != nil {
+		if pqError, ok := err.(*pq.Error); ok {
+			return pqError
+		} else {
+			return err
+		}
+	}
+
+	err = s.database.SetsReset(context.Background())
 	if err != nil {
 		if pqError, ok := err.(*pq.Error); ok {
 			return pqError
@@ -187,6 +268,8 @@ func handlerReset(s *state, cmd command) error {
 			return err
 		}
 	}
+
+	fmt.Println("SorceryDB successfully reset")
 
 	return nil
 }
