@@ -47,6 +47,38 @@ func (q *Queries) CreateSet(ctx context.Context, arg CreateSetParams) (Setlist, 
 	return i, err
 }
 
+const getSets = `-- name: GetSets :many
+SELECT id, created_at, updated_at, name FROM setlist
+`
+
+func (q *Queries) GetSets(ctx context.Context) ([]Setlist, error) {
+	rows, err := q.db.QueryContext(ctx, getSets)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Setlist
+	for rows.Next() {
+		var i Setlist
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setlistReset = `-- name: SetlistReset :exec
 DELETE FROM setlist
 `

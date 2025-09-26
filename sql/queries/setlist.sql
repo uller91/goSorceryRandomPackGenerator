@@ -10,3 +10,6 @@ RETURNING *;
 
 -- name: SetlistReset :exec
 DELETE FROM setlist;
+
+-- name: GetSets :many
+SELECT * FROM setlist;

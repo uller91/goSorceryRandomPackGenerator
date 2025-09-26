@@ -211,6 +211,40 @@ func handlerUpdate(s *state, cmd command) error {
 
 	fmt.Println("SorceryDB update successfully finished")
 
+	//rewrite here
+	
+	//sets
+	sts, err := s.database.GetSets(context.Background())
+	if err != nil {
+		return err
+	}
+
+	for _, st := range sts {
+		s.config.Sets = append(s.config.Sets, st.Name)
+	}
+
+	//types
+	tps, err := s.database.GetTypes(context.Background())
+	if err != nil {
+		return err
+	}
+
+	for _, tp := range tps {
+		s.config.Types = append(s.config.Types, tp.Name)
+	}
+
+	//rarities
+	rts, err := s.database.GetRarities(context.Background())
+	if err != nil {
+		return err
+	}
+
+	for _, rt := range rts {
+		s.config.Rarities = append(s.config.Rarities, rt.Name)
+	}
+
+	//fmt.Println(s.config.Rarities)
+
 	return nil
 }
 

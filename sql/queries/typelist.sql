@@ -10,3 +10,6 @@ RETURNING *;
 
 -- name: TypelistReset :exec
 DELETE FROM typelist;
+
+-- name: GetTypes :many
+SELECT * FROM typelist;

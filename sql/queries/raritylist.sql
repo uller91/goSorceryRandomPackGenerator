@@ -10,3 +10,6 @@ RETURNING *;
 
 -- name: RaritylistReset :exec
 DELETE FROM raritylist;
+
+-- name: GetRarities :many
+SELECT * FROM raritylist;

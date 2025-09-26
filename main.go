@@ -14,9 +14,9 @@ import (
 
 type config struct {
 	BaseUrl string
-	//Sets []string
-	//Types []string
-	//Rarities []string
+	Sets []string
+	Types []string
+	Rarities []string
 }
 
 func main() {
@@ -27,6 +27,9 @@ func main() {
 	var st state
 
 	cfg.BaseUrl = apiInter.BaseUrl
+	//cfg.Sets =
+	//cfg.Types = 
+	//cfg.Rarities = 
 	st.config = &cfg
 
 	db, err := sql.Open("postgres", dbURL)

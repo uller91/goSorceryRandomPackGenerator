@@ -47,6 +47,38 @@ func (q *Queries) CreateType(ctx context.Context, arg CreateTypeParams) (Typelis
 	return i, err
 }
 
+const getTypes = `-- name: GetTypes :many
+SELECT id, created_at, updated_at, name FROM typelist
+`
+
+func (q *Queries) GetTypes(ctx context.Context) ([]Typelist, error) {
+	rows, err := q.db.QueryContext(ctx, getTypes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Typelist
+	for rows.Next() {
+		var i Typelist
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const typelistReset = `-- name: TypelistReset :exec
 DELETE FROM typelist
 `
