@@ -13,9 +13,9 @@ import (
 )
 
 type config struct {
-	BaseUrl string
-	Sets []string
-	Types []string
+	BaseUrl  string
+	Sets     []string
+	Types    []string
 	Rarities []string
 }
 
@@ -28,8 +28,8 @@ func main() {
 
 	cfg.BaseUrl = apiInter.BaseUrl
 	//cfg.Sets =
-	//cfg.Types = 
-	//cfg.Rarities = 
+	//cfg.Types =
+	//cfg.Rarities =
 	st.config = &cfg
 
 	db, err := sql.Open("postgres", dbURL)
@@ -46,9 +46,10 @@ func main() {
 	cmds.descriptions = descriptions
 	st.commands = &cmds
 
-	cmds.register("help", handlerHelp, descriptionHelp)       //add description as a constant
-	cmds.register("update", handlerUpdate, descriptionUpdate) //add description as a constant
+	cmds.register("help", handlerHelp, descriptionHelp)
+	cmds.register("update", handlerUpdate, descriptionUpdate)
 	cmds.register("reset", handlerReset, descriptionReset)
+	cmds.register("draft", handlerDraft, descriptionDraft)
 
 	//single command test
 	/*

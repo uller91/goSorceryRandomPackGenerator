@@ -64,6 +64,24 @@ func (q *Queries) CreateCard(ctx context.Context, arg CreateCardParams) (Card, e
 	return i, err
 }
 
+const getCard = `-- name: GetCard :one
+SELECT id, created_at, updated_at, name, rarity, type FROM cards WHERE id = $1
+`
+
+func (q *Queries) GetCard(ctx context.Context, id uuid.UUID) (Card, error) {
+	row := q.db.QueryRowContext(ctx, getCard, id)
+	var i Card
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Name,
+		&i.Rarity,
+		&i.Type,
+	)
+	return i, err
+}
+
 const getCardByName = `-- name: GetCardByName :one
 SELECT id, created_at, updated_at, name, rarity, type FROM cards WHERE NAME = $1
 `
@@ -80,6 +98,17 @@ func (q *Queries) GetCardByName(ctx context.Context, name string) (Card, error) 
 		&i.Type,
 	)
 	return i, err
+}
+
+const getCardNumber = `-- name: GetCardNumber :one
+SELECT COUNT(*) from cards
+`
+
+func (q *Queries) GetCardNumber(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getCardNumber)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const getCardsByRarity = `-- name: GetCardsByRarity :many

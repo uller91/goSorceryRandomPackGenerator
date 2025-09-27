@@ -11,3 +11,6 @@ RETURNING *;
 
 -- name: SetsReset :exec
 DELETE FROM sets;
+
+-- name: GetCardsBySet :many
+SELECT * FROM sets WHERE name = $1;

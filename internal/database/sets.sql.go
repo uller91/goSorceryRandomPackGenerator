@@ -51,6 +51,39 @@ func (q *Queries) CreateSetAndCard(ctx context.Context, arg CreateSetAndCardPara
 	return i, err
 }
 
+const getCardsBySet = `-- name: GetCardsBySet :many
+SELECT id, created_at, updated_at, name, card_id FROM sets WHERE name = $1
+`
+
+func (q *Queries) GetCardsBySet(ctx context.Context, name string) ([]Set, error) {
+	rows, err := q.db.QueryContext(ctx, getCardsBySet, name)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Set
+	for rows.Next() {
+		var i Set
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.CardID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setsReset = `-- name: SetsReset :exec
 DELETE FROM sets
 `

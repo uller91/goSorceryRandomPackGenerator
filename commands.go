@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/uller91/goSorceryDraftDB/internal/apiInter"
 	"github.com/uller91/goSorceryDraftDB/internal/database"
+	"math/big"
 	"slices"
 	"time"
 )
@@ -47,10 +49,44 @@ func (c *commands) register(name string, f func(*state, command) error, d string
 	c.descriptions[name] = d
 }
 
-func addToCollection(sl *[]string, st string) {
-	if !slices.Contains(*sl, st) {
-		*sl = append(*sl, st)
+func addToCollection(origin *[]string, collection *[]string, item string) {
+	if !slices.Contains(*origin, item) && !slices.Contains(*collection, item) {
+		*collection = append(*collection, item)
 	}
+}
+
+func (s *state) updateConfig() error {
+	//sets
+	oldSets, err := s.database.GetSets(context.Background())
+	if err != nil {
+		return err
+	}
+
+	for _, st := range oldSets {
+		s.config.Sets = append(s.config.Sets, st.Name)
+	}
+
+	//types
+	oldTypes, err := s.database.GetTypes(context.Background())
+	if err != nil {
+		return err
+	}
+
+	for _, tp := range oldTypes {
+		s.config.Types = append(s.config.Types, tp.Name)
+	}
+
+	//rarities
+	oldRarities, err := s.database.GetRarities(context.Background())
+	if err != nil {
+		return err
+	}
+
+	for _, rt := range oldRarities {
+		s.config.Rarities = append(s.config.Rarities, rt.Name)
+	}
+
+	return nil
 }
 
 // Help
@@ -86,10 +122,15 @@ const (
 	descriptionUpdate = "Updates an internal DB sending the API requiest to api.sorcerytcg.com"
 )
 
-// current db size - 649
+// current db size = 649
 func handlerUpdate(s *state, cmd command) error {
 	if len(cmd.arguments) != 0 {
 		return errors.New("0 arguments are expected")
+	}
+
+	err := s.updateConfig()
+	if err != nil {
+		return err
 	}
 
 	var newSets []string
@@ -127,11 +168,11 @@ func handlerUpdate(s *state, cmd command) error {
 				return err
 			}
 		} else {
-			fmt.Printf("\"%v\" added in the Cards table\n", cardCreated.Name)
+			//fmt.Printf("\"%v\" added in the DB\n", cardCreated.Name)
 			cardsAdded += 1
 
-			addToCollection(&newTypes, cardCreated.Type)
-			addToCollection(&newRarities, cardCreated.Rarity)
+			addToCollection(&s.config.Types, &newTypes, cardCreated.Type)
+			addToCollection(&s.config.Rarities, &newRarities, cardCreated.Rarity)
 		}
 
 		//add set+card
@@ -150,13 +191,13 @@ func handlerUpdate(s *state, cmd command) error {
 				fmt.Printf("Combination of Set: \"%v\" and Card: \"%v\" added in the Sets table\n", setCardCreated.Name, cardCreated.Name)
 			} */
 
-			addToCollection(&newSets, set.Name)
+			addToCollection(&s.config.Sets, &newSets, set.Name)
 		}
 	}
 
-	//fmt.Println(newType)
-	//fmt.Println(newRarity)
-	//fmt.Println(newSet)
+	//fmt.Println(newTypes)
+	//fmt.Println(newRarities)
+	//fmt.Println(newSets)
 
 	//add new sets
 	if newSets != nil {
@@ -209,41 +250,7 @@ func handlerUpdate(s *state, cmd command) error {
 		fmt.Println(cards[0].Sets[0].Name)
 	*/
 
-	fmt.Println("SorceryDB update successfully finished")
-
-	//rewrite here
-	
-	//sets
-	sts, err := s.database.GetSets(context.Background())
-	if err != nil {
-		return err
-	}
-
-	for _, st := range sts {
-		s.config.Sets = append(s.config.Sets, st.Name)
-	}
-
-	//types
-	tps, err := s.database.GetTypes(context.Background())
-	if err != nil {
-		return err
-	}
-
-	for _, tp := range tps {
-		s.config.Types = append(s.config.Types, tp.Name)
-	}
-
-	//rarities
-	rts, err := s.database.GetRarities(context.Background())
-	if err != nil {
-		return err
-	}
-
-	for _, rt := range rts {
-		s.config.Rarities = append(s.config.Rarities, rt.Name)
-	}
-
-	//fmt.Println(s.config.Rarities)
+	fmt.Println("SorceryDB update finished successfully")
 
 	return nil
 }
@@ -260,50 +267,78 @@ func handlerReset(s *state, cmd command) error {
 
 	err := s.database.RaritylistReset(context.Background())
 	if err != nil {
-		if pqError, ok := err.(*pq.Error); ok {
-			return pqError
-		} else {
-			return err
-		}
+		return err
 	}
 
 	err = s.database.TypelistReset(context.Background())
 	if err != nil {
-		if pqError, ok := err.(*pq.Error); ok {
-			return pqError
-		} else {
-			return err
-		}
+		return err
 	}
 
 	err = s.database.SetlistReset(context.Background())
 	if err != nil {
-		if pqError, ok := err.(*pq.Error); ok {
-			return pqError
-		} else {
-			return err
-		}
+		return err
 	}
 
 	err = s.database.SetsReset(context.Background())
 	if err != nil {
-		if pqError, ok := err.(*pq.Error); ok {
-			return pqError
-		} else {
-			return err
-		}
+		return err
 	}
 
 	err = s.database.CardsReset(context.Background())
 	if err != nil {
-		if pqError, ok := err.(*pq.Error); ok {
-			return pqError
-		} else {
-			return err
-		}
+		return err
 	}
 
 	fmt.Println("SorceryDB successfully reset")
+
+	return nil
+}
+
+// Draft
+const (
+	descriptionDraft = "?"
+)
+
+func handlerDraft(s *state, cmd command) error {
+	/*
+		if len(cmd.arguments) == 0 {
+			...
+		}
+	*/
+
+	err := s.updateConfig()
+	if err != nil {
+		return err
+	}
+
+	if s.config.Sets == nil {
+		return errors.New("The DB is empty! Use \"update\" command to fill the DB with cards")
+	}
+
+	randomSetNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(s.config.Sets))))
+	randomSet := s.config.Sets[int(randomSetNumber.Int64())]
+	//randomSet = "Dragonlord"
+
+	set, err := s.database.GetCardsBySet(context.Background(), randomSet)
+	if err != nil {
+		return err
+	}
+
+	setCards := []database.Card{}
+	for _, single := range set {
+		card, err := s.database.GetCard(context.Background(), single.CardID)
+		if err != nil {
+			return err
+		}
+		setCards = append(setCards, card)
+		//fmt.Println(card.Name)
+	}
+
+	randomCardNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(setCards))))
+	randomCard := setCards[int(randomCardNumber.Int64())]
+
+	fmt.Println(randomCard.Name)
 
 	return nil
 }
