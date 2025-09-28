@@ -10,7 +10,6 @@ import (
 	"github.com/uller91/goSorceryDraftDB/internal/apiInter"
 	"github.com/uller91/goSorceryDraftDB/internal/database"
 	"math/big"
-	"slices"
 	"time"
 )
 
@@ -49,49 +48,10 @@ func (c *commands) register(name string, f func(*state, command) error, d string
 	c.descriptions[name] = d
 }
 
-func addToCollection(origin *[]string, collection *[]string, item string) {
-	if !slices.Contains(*origin, item) && !slices.Contains(*collection, item) {
-		*collection = append(*collection, item)
-	}
-}
-
-func (s *state) updateConfig() error {
-	//sets
-	oldSets, err := s.database.GetSets(context.Background())
-	if err != nil {
-		return err
-	}
-
-	for _, st := range oldSets {
-		s.config.Sets = append(s.config.Sets, st.Name)
-	}
-
-	//types
-	oldTypes, err := s.database.GetTypes(context.Background())
-	if err != nil {
-		return err
-	}
-
-	for _, tp := range oldTypes {
-		s.config.Types = append(s.config.Types, tp.Name)
-	}
-
-	//rarities
-	oldRarities, err := s.database.GetRarities(context.Background())
-	if err != nil {
-		return err
-	}
-
-	for _, rt := range oldRarities {
-		s.config.Rarities = append(s.config.Rarities, rt.Name)
-	}
-
-	return nil
-}
 
 // Help
 const (
-	descriptionHelp = "Shows the list of commands (help) or their description (help command)"
+	descriptionHelp = "Shows the list of commands (\"help\") or their description (\"help command_name\")"
 )
 
 func handlerHelp(s *state, cmd command) error {
@@ -119,7 +79,7 @@ func handlerHelp(s *state, cmd command) error {
 
 // Update
 const (
-	descriptionUpdate = "Updates an internal DB sending the API requiest to api.sorcerytcg.com"
+	descriptionUpdate = "Updates an internal card DB sending the API requiest to \"api.sorcerytcg.com\""
 )
 
 // current db size = 649
@@ -137,7 +97,7 @@ func handlerUpdate(s *state, cmd command) error {
 	var newTypes []string
 	var newRarities []string
 
-	fmt.Println("Initializing the SorceryDB update...")
+	fmt.Println("Initializing card DB update...")
 	fmt.Println("")
 	fmt.Printf("Sending the API requiest to %v...\n", s.config.BaseUrl)
 	fmt.Println("")
@@ -151,7 +111,7 @@ func handlerUpdate(s *state, cmd command) error {
 	fmt.Printf("Cards found: %v\n", dbSize)
 	fmt.Println("")
 
-	fmt.Println("Updating the DB...")
+	fmt.Println("Updating card DB...")
 
 	cardsAdded := 0
 	cardsUpdated := 0
@@ -290,17 +250,17 @@ func handlerReset(s *state, cmd command) error {
 		return err
 	}
 
-	fmt.Println("SorceryDB successfully reset")
+	fmt.Println("Card DB successfully reset")
 
 	return nil
 }
 
-// Draft
+// Open
 const (
-	descriptionDraft = "?"
+	descriptionOpenPack = "Generates a card pack from a random Sorcery TCG set"
 )
 
-func handlerDraft(s *state, cmd command) error {
+func handlerOpenPack(s *state, cmd command) error {
 	/*
 		if len(cmd.arguments) == 0 {
 			...
@@ -318,27 +278,92 @@ func handlerDraft(s *state, cmd command) error {
 
 	randomSetNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(s.config.Sets))))
 	randomSet := s.config.Sets[int(randomSetNumber.Int64())]
-	//randomSet = "Dragonlord"
 
 	set, err := s.database.GetCardsBySet(context.Background(), randomSet)
 	if err != nil {
 		return err
 	}
 
-	setCards := []database.Card{}
-	for _, single := range set {
-		card, err := s.database.GetCard(context.Background(), single.CardID)
+	//setCards := []database.Card{}
+	cardsOrdinary := []database.Card{}
+	cardsExceptional := []database.Card{}
+	cardsElite := []database.Card{}
+	cardsUnique := []database.Card{}
+
+	for _, setCard := range set {
+		card, err := s.database.GetCard(context.Background(), setCard.CardID)
 		if err != nil {
 			return err
 		}
-		setCards = append(setCards, card)
-		//fmt.Println(card.Name)
+
+		rarity := card.Rarity
+
+		switch rarity {
+		case "Ordinary":
+			cardsOrdinary = append(cardsOrdinary, card)
+		case "Exceptional":
+			cardsExceptional = append(cardsExceptional, card)
+		case "Elite":
+			cardsElite = append(cardsElite, card)
+		case "Unique":
+			cardsUnique = append(cardsUnique, card)
+		default:
+			return errors.New("Unknown rarity was found!")
+		}
 	}
 
-	randomCardNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(setCards))))
-	randomCard := setCards[int(randomCardNumber.Int64())]
+	//need to do the proper mini-set handling... Add them to the .env?
+	if randomSet == "Dragonlord" {
+		fmt.Printf("It is %s set!\n", randomSet)
+	} else {
+		ordinary := getRandomCardsFromCollection(cardsOrdinary, 11)
+		exceptional := getRandomCardsFromCollection(cardsExceptional, 3)
+		eliteOrUnique := []database.Card{}
+		//20%
+		uniqueProbability, _ := rand.Int(rand.Reader, big.NewInt(int64(5)))
+		if uniqueProbability.Int64() == 0 {
+			//unique
+			eliteOrUnique = getRandomCardsFromCollection(cardsUnique, 1)
+		} else {
+			//elite
+			eliteOrUnique = getRandomCardsFromCollection(cardsElite, 1)
+		}
 
-	fmt.Println(randomCard.Name)
+		fmt.Printf("Random pack from %s set:\n", randomSet)
+		for _, card := range ordinary {
+			fmt.Printf("%v - %v\n", card.Name, card.Rarity)
+		}
+		for _, card := range exceptional {
+			fmt.Printf("%v - %v\n", card.Name, card.Rarity)
+		}
+		for _, card := range eliteOrUnique {
+			fmt.Printf("%v - %v\n", card.Name, card.Rarity)
+		}
+	}
+	
+	/*
+	collection := getRandomCardsFromCollection(cardsUnique, 1000)
+	for _, card := range collection {
+		fmt.Println(card.Name)
+	}
+	*/
+	
+	
+
+	//in progress. Will finish later
+	/*
+	if randomSet != "Alpha" || randomSet != "Beta" {
+
+	} else {
+		fmt.Printf("It is %s set!\n", randomSet)
+	}
+	*/
+
+	/*
+	randomCardNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(cardsUnique))))
+	randomCard := cardsUnique[int(randomCardNumber.Int64())]
+	*/
+	//fmt.Println(randomCard.Name)
 
 	return nil
 }

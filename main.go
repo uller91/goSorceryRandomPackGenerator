@@ -27,9 +27,6 @@ func main() {
 	var st state
 
 	cfg.BaseUrl = apiInter.BaseUrl
-	//cfg.Sets =
-	//cfg.Types =
-	//cfg.Rarities =
 	st.config = &cfg
 
 	db, err := sql.Open("postgres", dbURL)
@@ -49,7 +46,7 @@ func main() {
 	cmds.register("help", handlerHelp, descriptionHelp)
 	cmds.register("update", handlerUpdate, descriptionUpdate)
 	cmds.register("reset", handlerReset, descriptionReset)
-	cmds.register("draft", handlerDraft, descriptionDraft)
+	cmds.register("openpack", handlerOpenPack, descriptionOpenPack)
 
 	//single command test
 	/*
@@ -65,7 +62,7 @@ func main() {
 	if len(args) < 2 {
 		//err := fmt.Errorf("Not enough arguments")
 		//fmt.Println(err.Error())
-		fmt.Println("Welcome to the Sorcery TCG Draft DB. To see the list of available commands use the \"help\" command.")
+		fmt.Println("Welcome to the Sorcery TCG Random Pack Generator. To see the list of available commands use the \"help\" command.")
 		os.Exit(0)
 	}
 
