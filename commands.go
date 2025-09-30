@@ -10,6 +10,7 @@ import (
 	"github.com/uller91/goSorceryDraftDB/internal/apiInter"
 	"github.com/uller91/goSorceryDraftDB/internal/database"
 	"math/big"
+	"slices"
 	"time"
 )
 
@@ -47,7 +48,6 @@ func (c *commands) register(name string, f func(*state, command) error, d string
 	c.handlers[name] = f
 	c.descriptions[name] = d
 }
-
 
 // Help
 const (
@@ -261,12 +261,6 @@ const (
 )
 
 func handlerOpenPack(s *state, cmd command) error {
-	/*
-		if len(cmd.arguments) == 0 {
-			...
-		}
-	*/
-
 	err := s.updateConfig()
 	if err != nil {
 		return err
@@ -276,94 +270,81 @@ func handlerOpenPack(s *state, cmd command) error {
 		return errors.New("The DB is empty! Use \"update\" command to fill the DB with cards")
 	}
 
-	randomSetNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(s.config.Sets))))
-	randomSet := s.config.Sets[int(randomSetNumber.Int64())]
+	if len(cmd.arguments) == 0 {
+		randomSetNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(s.config.Sets))))
+		randomSet := s.config.Sets[int(randomSetNumber.Int64())]
+		//randomSet = "Arthurian Legends"
 
-	set, err := s.database.GetCardsBySet(context.Background(), randomSet)
-	if err != nil {
-		return err
-	}
+		cardsInPack := map[string]int{
+			"Ordinary": 11,
+			"Exceptional": 3,
+		}
+		//20%
+		uniqueProbability, _ := rand.Int(rand.Reader, big.NewInt(int64(5)))
+		if uniqueProbability.Int64() == 0 {
+			cardsInPack["Elite"] = 0
+			cardsInPack["Unique"] = 1
+		} else {
+			cardsInPack["Elite"] = 1
+			cardsInPack["Unique"] = 0
+		}
 
-	//setCards := []database.Card{}
-	cardsOrdinary := []database.Card{}
-	cardsExceptional := []database.Card{}
-	cardsElite := []database.Card{}
-	cardsUnique := []database.Card{}
-
-	for _, setCard := range set {
-		card, err := s.database.GetCard(context.Background(), setCard.CardID)
+		set, err := s.database.GetCardsBySet(context.Background(), randomSet)
 		if err != nil {
 			return err
 		}
 
-		rarity := card.Rarity
+		cardsOrdinary := []database.Card{}
+		cardsExceptional := []database.Card{}
+		cardsElite := []database.Card{}
+		cardsUnique := []database.Card{}
 
-		switch rarity {
-		case "Ordinary":
-			cardsOrdinary = append(cardsOrdinary, card)
-		case "Exceptional":
-			cardsExceptional = append(cardsExceptional, card)
-		case "Elite":
-			cardsElite = append(cardsElite, card)
-		case "Unique":
-			cardsUnique = append(cardsUnique, card)
-		default:
-			return errors.New("Unknown rarity was found!")
+		for _, setCard := range set {
+			card, err := s.database.GetCard(context.Background(), setCard.CardID)
+			if err != nil {
+				return err
+			}
+
+			rarity := card.Rarity
+
+			switch rarity {
+			case "Ordinary":
+				cardsOrdinary = append(cardsOrdinary, card)
+			case "Exceptional":
+				cardsExceptional = append(cardsExceptional, card)
+			case "Elite":
+				cardsElite = append(cardsElite, card)
+			case "Unique":
+				if randomSet == "Arthurian Legends" && slices.Contains(s.config.ALSirs, card.Name) {
+					cardsElite = append(cardsElite, card)
+					continue
+				}
+				cardsUnique = append(cardsUnique, card)
+			default:
+				return errors.New("Unknown rarity was found!")
+			}
 		}
-	}
 
-	//need to do the proper mini-set handling... Add them to the .env?
-	if randomSet == "Dragonlord" {
-		fmt.Printf("It is %s set!\n", randomSet)
-	} else {
-		ordinary := getRandomCardsFromCollection(cardsOrdinary, 11)
-		exceptional := getRandomCardsFromCollection(cardsExceptional, 3)
-		eliteOrUnique := []database.Card{}
-		//20%
-		uniqueProbability, _ := rand.Int(rand.Reader, big.NewInt(int64(5)))
-		if uniqueProbability.Int64() == 0 {
-			//unique
-			eliteOrUnique = getRandomCardsFromCollection(cardsUnique, 1)
+		
+		if slices.Contains(s.config.MiniSets, randomSet) {
+			fmt.Printf("There is no pack for %s set!\n", randomSet)
 		} else {
-			//elite
-			eliteOrUnique = getRandomCardsFromCollection(cardsElite, 1)
-		}
+			pack := getRandomCardsFromCollection(cardsOrdinary, cardsInPack["Ordinary"])
+			pack = append(pack, getRandomCardsFromCollection(cardsExceptional, cardsInPack["Exceptional"])...)
+			pack = append(pack, getRandomCardsFromCollection(cardsElite, cardsInPack["Elite"])...)
+			pack = append(pack, getRandomCardsFromCollection(cardsUnique, cardsInPack["Unique"])...)
+			
 
-		fmt.Printf("Random pack from %s set:\n", randomSet)
-		for _, card := range ordinary {
-			fmt.Printf("%v - %v\n", card.Name, card.Rarity)
-		}
-		for _, card := range exceptional {
-			fmt.Printf("%v - %v\n", card.Name, card.Rarity)
-		}
-		for _, card := range eliteOrUnique {
-			fmt.Printf("%v - %v\n", card.Name, card.Rarity)
+			fmt.Printf("Random pack from %s set:\n", randomSet)
+			fmt.Println("")
+
+			for _, card := range pack {
+				fmt.Printf("%v - %v - %v\n", card.Name, card.Type, card.Rarity)
+			}
 		}
 	}
-	
-	/*
-	collection := getRandomCardsFromCollection(cardsUnique, 1000)
-	for _, card := range collection {
-		fmt.Println(card.Name)
-	}
-	*/
-	
-	
-
-	//in progress. Will finish later
-	/*
-	if randomSet != "Alpha" || randomSet != "Beta" {
-
-	} else {
-		fmt.Printf("It is %s set!\n", randomSet)
-	}
-	*/
-
-	/*
-	randomCardNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(cardsUnique))))
-	randomCard := cardsUnique[int(randomCardNumber.Int64())]
-	*/
-	//fmt.Println(randomCard.Name)
 
 	return nil
 }
+
+//func generatePack ()

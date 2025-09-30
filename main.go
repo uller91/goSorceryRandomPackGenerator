@@ -17,6 +17,8 @@ type config struct {
 	Sets     []string
 	Types    []string
 	Rarities []string
+	ALSirs   []string
+	MiniSets []string
 }
 
 func main() {
