@@ -16,14 +16,5 @@ DELETE FROM cards;
 -- name: GetCard :one
 SELECT * FROM cards WHERE id = $1;
 
--- name: GetCardByName :one
-SELECT * FROM cards WHERE NAME = $1;
-
--- name: GetCardsByRarity :many
-SELECT * FROM cards WHERE rarity = $1;
-
--- name: GetCardsByType :many
-SELECT * FROM cards WHERE type = $1;
-
--- name: GetCardNumber :one
-SELECT COUNT(*) from cards;
+-- name: GetAllCards :many
+SELECT * FROM cards;

@@ -84,6 +84,23 @@ func (q *Queries) GetCardsBySet(ctx context.Context, name string) ([]Set, error)
 	return items, nil
 }
 
+const getSetByCard = `-- name: GetSetByCard :one
+SELECT id, created_at, updated_at, name, card_id FROM sets WHERE card_id = $1
+`
+
+func (q *Queries) GetSetByCard(ctx context.Context, cardID uuid.UUID) (Set, error) {
+	row := q.db.QueryRowContext(ctx, getSetByCard, cardID)
+	var i Set
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Name,
+		&i.CardID,
+	)
+	return i, err
+}
+
 const setsReset = `-- name: SetsReset :exec
 DELETE FROM sets
 `

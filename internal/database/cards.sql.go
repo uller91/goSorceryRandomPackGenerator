@@ -64,6 +64,40 @@ func (q *Queries) CreateCard(ctx context.Context, arg CreateCardParams) (Card, e
 	return i, err
 }
 
+const getAllCards = `-- name: GetAllCards :many
+SELECT id, created_at, updated_at, name, rarity, type FROM cards
+`
+
+func (q *Queries) GetAllCards(ctx context.Context) ([]Card, error) {
+	rows, err := q.db.QueryContext(ctx, getAllCards)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Card
+	for rows.Next() {
+		var i Card
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.Rarity,
+			&i.Type,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCard = `-- name: GetCard :one
 SELECT id, created_at, updated_at, name, rarity, type FROM cards WHERE id = $1
 `
@@ -80,101 +114,4 @@ func (q *Queries) GetCard(ctx context.Context, id uuid.UUID) (Card, error) {
 		&i.Type,
 	)
 	return i, err
-}
-
-const getCardByName = `-- name: GetCardByName :one
-SELECT id, created_at, updated_at, name, rarity, type FROM cards WHERE NAME = $1
-`
-
-func (q *Queries) GetCardByName(ctx context.Context, name string) (Card, error) {
-	row := q.db.QueryRowContext(ctx, getCardByName, name)
-	var i Card
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Name,
-		&i.Rarity,
-		&i.Type,
-	)
-	return i, err
-}
-
-const getCardNumber = `-- name: GetCardNumber :one
-SELECT COUNT(*) from cards
-`
-
-func (q *Queries) GetCardNumber(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getCardNumber)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const getCardsByRarity = `-- name: GetCardsByRarity :many
-SELECT id, created_at, updated_at, name, rarity, type FROM cards WHERE rarity = $1
-`
-
-func (q *Queries) GetCardsByRarity(ctx context.Context, rarity string) ([]Card, error) {
-	rows, err := q.db.QueryContext(ctx, getCardsByRarity, rarity)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Card
-	for rows.Next() {
-		var i Card
-		if err := rows.Scan(
-			&i.ID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.Name,
-			&i.Rarity,
-			&i.Type,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getCardsByType = `-- name: GetCardsByType :many
-SELECT id, created_at, updated_at, name, rarity, type FROM cards WHERE type = $1
-`
-
-func (q *Queries) GetCardsByType(ctx context.Context, type_ string) ([]Card, error) {
-	rows, err := q.db.QueryContext(ctx, getCardsByType, type_)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Card
-	for rows.Next() {
-		var i Card
-		if err := rows.Scan(
-			&i.ID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.Name,
-			&i.Rarity,
-			&i.Type,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }

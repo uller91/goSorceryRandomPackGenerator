@@ -257,10 +257,10 @@ func handlerReset(s *state, cmd command) error {
 
 // Open
 const (
-	descriptionOpenPack = "Generates a card pack from a random Sorcery TCG set"
+	descriptionGenerate = "Generates a card pack from a random Sorcery TCG set"
 )
 
-func handlerOpenPack(s *state, cmd command) error {
+func handlerGenerate(s *state, cmd command) error {
 	err := s.updateConfig()
 	if err != nil {
 		return err
@@ -270,81 +270,33 @@ func handlerOpenPack(s *state, cmd command) error {
 		return errors.New("The DB is empty! Use \"update\" command to fill the DB with cards")
 	}
 
+	//cards in the pack
+	cardsInPack := map[string]int{
+		"Ordinary":    11,
+		"Exceptional": 3,
+	}
+	//20%
+	uniqueProbability, _ := rand.Int(rand.Reader, big.NewInt(int64(5)))
+	if uniqueProbability.Int64() == 0 {
+		cardsInPack["Elite"] = 0
+		cardsInPack["Unique"] = 1
+	} else {
+		cardsInPack["Elite"] = 1
+		cardsInPack["Unique"] = 0
+	}
+
 	if len(cmd.arguments) == 0 {
 		randomSetNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(s.config.Sets))))
 		randomSet := s.config.Sets[int(randomSetNumber.Int64())]
 		//randomSet = "Arthurian Legends"
 
-		cardsInPack := map[string]int{
-			"Ordinary": 11,
-			"Exceptional": 3,
-		}
-		//20%
-		uniqueProbability, _ := rand.Int(rand.Reader, big.NewInt(int64(5)))
-		if uniqueProbability.Int64() == 0 {
-			cardsInPack["Elite"] = 0
-			cardsInPack["Unique"] = 1
-		} else {
-			cardsInPack["Elite"] = 1
-			cardsInPack["Unique"] = 0
-		}
+		return generateOnePack(s, randomSet, cardsInPack)
+	}
 
-		set, err := s.database.GetCardsBySet(context.Background(), randomSet)
-		if err != nil {
-			return err
-		}
-
-		cardsOrdinary := []database.Card{}
-		cardsExceptional := []database.Card{}
-		cardsElite := []database.Card{}
-		cardsUnique := []database.Card{}
-
-		for _, setCard := range set {
-			card, err := s.database.GetCard(context.Background(), setCard.CardID)
-			if err != nil {
-				return err
-			}
-
-			rarity := card.Rarity
-
-			switch rarity {
-			case "Ordinary":
-				cardsOrdinary = append(cardsOrdinary, card)
-			case "Exceptional":
-				cardsExceptional = append(cardsExceptional, card)
-			case "Elite":
-				cardsElite = append(cardsElite, card)
-			case "Unique":
-				if randomSet == "Arthurian Legends" && slices.Contains(s.config.ALSirs, card.Name) {
-					cardsElite = append(cardsElite, card)
-					continue
-				}
-				cardsUnique = append(cardsUnique, card)
-			default:
-				return errors.New("Unknown rarity was found!")
-			}
-		}
-
-		
-		if slices.Contains(s.config.MiniSets, randomSet) {
-			fmt.Printf("There is no pack for %s set!\n", randomSet)
-		} else {
-			pack := getRandomCardsFromCollection(cardsOrdinary, cardsInPack["Ordinary"])
-			pack = append(pack, getRandomCardsFromCollection(cardsExceptional, cardsInPack["Exceptional"])...)
-			pack = append(pack, getRandomCardsFromCollection(cardsElite, cardsInPack["Elite"])...)
-			pack = append(pack, getRandomCardsFromCollection(cardsUnique, cardsInPack["Unique"])...)
-			
-
-			fmt.Printf("Random pack from %s set:\n", randomSet)
-			fmt.Println("")
-
-			for _, card := range pack {
-				fmt.Printf("%v - %v - %v\n", card.Name, card.Type, card.Rarity)
-			}
-		}
+	if slices.Contains(cmd.arguments, "all") {
+		//return nil
+		return generateOnePackAll(s, cardsInPack)
 	}
 
 	return nil
 }
-
-//func generatePack ()

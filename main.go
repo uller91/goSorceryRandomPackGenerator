@@ -48,7 +48,7 @@ func main() {
 	cmds.register("help", handlerHelp, descriptionHelp)
 	cmds.register("update", handlerUpdate, descriptionUpdate)
 	cmds.register("reset", handlerReset, descriptionReset)
-	cmds.register("openpack", handlerOpenPack, descriptionOpenPack)
+	cmds.register("generate", handlerGenerate, descriptionGenerate)
 
 	//single command test
 	/*
