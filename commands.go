@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"slices"
 	"time"
+	"strings"
 )
 
 type state struct {
@@ -271,18 +272,20 @@ func handlerGenerate(s *state, cmd command) error {
 	}
 
 	//cards in the pack
+	//add "foil probability" - 25% chance of any rarity in place of the last ordinary card
+	//Based on the internet estimations for alpha boxes, it should be around: 4/9 for ordinary, 2.5/9 for exc, 1.5/9 for elite and 1/9 for unique
 	cardsInPack := map[string]int{
 		"Ordinary":    11,
 		"Exceptional": 3,
+		"Elite": 0,
+		"Unique": 0,
 	}
 	//20%
 	uniqueProbability, _ := rand.Int(rand.Reader, big.NewInt(int64(5)))
 	if uniqueProbability.Int64() == 0 {
-		cardsInPack["Elite"] = 0
-		cardsInPack["Unique"] = 1
+		cardsInPack["Unique"] += 1
 	} else {
-		cardsInPack["Elite"] = 1
-		cardsInPack["Unique"] = 0
+		cardsInPack["Elite"] += 1
 	}
 
 	if len(cmd.arguments) == 0 {
@@ -294,8 +297,32 @@ func handlerGenerate(s *state, cmd command) error {
 	}
 
 	if slices.Contains(cmd.arguments, "all") {
-		//return nil
 		return generateOnePackAll(s, cardsInPack)
+	}
+
+	//in progess
+	if tag := slices.Index(cmd.arguments, "-s"); tag != -1 && len(cmd.arguments) >= tag+2 {
+		set := cmd.arguments[tag+1]
+
+		switch strings.ToUpper(set) {
+		case "A":
+			set = "Alpha"
+		case "B":
+			set = "Beta"
+		case "AL":
+			set = "Arthurian Legends"
+		//default:
+		//	set = set
+		}
+		
+		//fmt.Println(set)
+		//fmt.Println(s.config.Sets)
+		if slices.Contains(s.config.Sets, strings.Title(set)) {
+			return generateOnePack(s, set, cardsInPack)
+		} else {
+			fmt.Println("No such set in DB! Generating the random pack...")
+			return generateOnePackAll(s, cardsInPack)
+		}
 	}
 
 	return nil

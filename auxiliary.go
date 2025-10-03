@@ -135,7 +135,7 @@ func generateOnePack(s *state, setName string, cardsInPack map[string]int) error
 		fmt.Println("")
 
 		for _, card := range pack {
-			fmt.Printf("%v - %v - %v\n", card.Name, card.Type, card.Rarity)
+			fmt.Printf("%-20v | %-10v | %-15v\n", card.Name, card.Type, card.Rarity)
 		}
 	}
 
@@ -196,7 +196,7 @@ func generateOnePackAll(s *state, cardsInPack map[string]int) error {
 	fmt.Println("")
 
 	for _, card := range pack {
-		fmt.Printf("%v - %v - %v - %v\n", card.Name, card.Type, card.Rarity, card.Set)
+		fmt.Printf("%-20v | %-10v | %-15v | %-10v\n", card.Name, card.Type, card.Rarity, card.Set)
 	}
 
 	return nil
