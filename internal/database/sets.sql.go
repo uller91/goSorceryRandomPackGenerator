@@ -84,21 +84,37 @@ func (q *Queries) GetCardsBySet(ctx context.Context, name string) ([]Set, error)
 	return items, nil
 }
 
-const getSetByCard = `-- name: GetSetByCard :one
+const getSetsByCard = `-- name: GetSetsByCard :many
 SELECT id, created_at, updated_at, name, card_id FROM sets WHERE card_id = $1
 `
 
-func (q *Queries) GetSetByCard(ctx context.Context, cardID uuid.UUID) (Set, error) {
-	row := q.db.QueryRowContext(ctx, getSetByCard, cardID)
-	var i Set
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Name,
-		&i.CardID,
-	)
-	return i, err
+func (q *Queries) GetSetsByCard(ctx context.Context, cardID uuid.UUID) ([]Set, error) {
+	rows, err := q.db.QueryContext(ctx, getSetsByCard, cardID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Set
+	for rows.Next() {
+		var i Set
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.CardID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const setsReset = `-- name: SetsReset :exec

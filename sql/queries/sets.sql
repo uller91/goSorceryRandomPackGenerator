@@ -15,5 +15,5 @@ DELETE FROM sets;
 -- name: GetCardsBySet :many
 SELECT * FROM sets WHERE name = $1;
 
--- name: GetSetByCard :one
+-- name: GetSetsByCard :many
 SELECT * FROM sets WHERE card_id = $1;

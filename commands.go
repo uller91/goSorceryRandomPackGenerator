@@ -271,58 +271,78 @@ func handlerGenerate(s *state, cmd command) error {
 		return errors.New("The DB is empty! Use \"update\" command to fill the DB with cards")
 	}
 
-	//cards in the pack
-	//add "foil probability" - 25% chance of any rarity in place of the last ordinary card
-	//Based on the internet estimations for alpha boxes, it should be around: 4/9 for ordinary, 2.5/9 for exc, 1.5/9 for elite and 1/9 for unique
+	//setting the set
+	set := ""
+	if len(cmd.arguments) == 0 {
+		randomSetNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(s.config.Sets))))
+		set = s.config.Sets[int(randomSetNumber.Int64())]
+	}
+
+	if tag := slices.Index(cmd.arguments, "-s"); tag != -1 {
+		if len(cmd.arguments) >= tag+2 {
+			set = cmd.arguments[tag+1]
+
+			switch strings.ToUpper(set) {
+			case "A":
+				set = "Alpha"
+			case "B":
+				set = "Beta"
+			case "AL":
+				set = "Arthurian Legends"
+			//add more at apropiate release
+			}
+			
+			if !slices.Contains(s.config.Sets, strings.Title(set)) && set != "all" && set != "random" {
+				fmt.Println("No such set in DB! Generating the random pack...")
+				set = "random"
+			} 
+	
+			if set == "random" {
+				randomSetNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(s.config.Sets))))
+				set = s.config.Sets[int(randomSetNumber.Int64())]
+			}
+			
+		} else {
+			return errors.New("No set name given after -s tag")
+		}
+	}
+
+	//setting number of cards in the pack
+	//add consideration for the 1st card in the set (alpha/beta at the moment) to only be avatar or site? 
 	cardsInPack := map[string]int{
 		"Ordinary":    11,
 		"Exceptional": 3,
 		"Elite": 0,
 		"Unique": 0,
 	}
-	//20%
+	//20% of unique
 	uniqueProbability, _ := rand.Int(rand.Reader, big.NewInt(int64(5)))
 	if uniqueProbability.Int64() == 0 {
 		cardsInPack["Unique"] += 1
 	} else {
 		cardsInPack["Elite"] += 1
 	}
-
-	if len(cmd.arguments) == 0 {
-		randomSetNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(s.config.Sets))))
-		randomSet := s.config.Sets[int(randomSetNumber.Int64())]
-		//randomSet = "Arthurian Legends"
-
-		return generateOnePack(s, randomSet, cardsInPack)
+	//25% of foil
+	foilProbability, _ := rand.Int(rand.Reader, big.NewInt(int64(4)))
+	//"foil" distribution: 7/17 ordinary, 6/17 exceptional, 3/17 elite, 1/17 unique
+	if foilProbability.Int64() == 0 {
+		whichFoilProbability, _ := rand.Int(rand.Reader, big.NewInt(int64(17)))
+		if whichFoilProbability.Int64() == 0 {
+			cardsInPack["Ordinary"] -= 1
+			cardsInPack["Unique"] += 1
+		} else if whichFoilProbability.Int64() < 4 {
+			cardsInPack["Ordinary"] -= 1
+			cardsInPack["Elite"] += 1
+		} else if whichFoilProbability.Int64() < 10 {
+			cardsInPack["Ordinary"] -= 1
+			cardsInPack["Exceptional"] += 1
+		}
 	}
 
-	if slices.Contains(cmd.arguments, "all") {
+	if set == "all" {
 		return generateOnePackAll(s, cardsInPack)
-	}
-
-	//in progess
-	if tag := slices.Index(cmd.arguments, "-s"); tag != -1 && len(cmd.arguments) >= tag+2 {
-		set := cmd.arguments[tag+1]
-
-		switch strings.ToUpper(set) {
-		case "A":
-			set = "Alpha"
-		case "B":
-			set = "Beta"
-		case "AL":
-			set = "Arthurian Legends"
-		//default:
-		//	set = set
-		}
-		
-		//fmt.Println(set)
-		//fmt.Println(s.config.Sets)
-		if slices.Contains(s.config.Sets, strings.Title(set)) {
-			return generateOnePack(s, set, cardsInPack)
-		} else {
-			fmt.Println("No such set in DB! Generating the random pack...")
-			return generateOnePackAll(s, cardsInPack)
-		}
+	} else {
+		return generateOnePack(s, set, cardsInPack)
 	}
 
 	return nil
