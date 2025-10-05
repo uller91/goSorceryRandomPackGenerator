@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"github.com/uller91/goSorceryDraftDB/internal/database"
 	"math/big"
 	"slices"
 	"strings"
@@ -18,27 +17,35 @@ type Card struct {
 	Sets   string
 }
 
-func addToCollection(origin *[]string, collection *[]string, item string) {
-	if !slices.Contains(*origin, item) && !slices.Contains(*collection, item) {
-		*collection = append(*collection, item)
-	}
-}
-
-//uses generics now... T can be Card{} or database.Card{} at the moment
-func getRandomCardsFromCollection[T any](collection []T, quantity int) []T {
+// func getRandomCardsFromCollection[T any](s *state, collection []T, quantity int) []T
+func getRandomCardsFromCollection(s *state, collection []Card, quantity int) []Card {
 	if quantity >= len(collection) {
 		fmt.Println("The collection is too small to get random cards. Returning full collection")
 		return collection
 	}
 
-	randomCollection := []T{}
+	if quantity < 0 {
+		fmt.Println("The quantity of cards to return is less then 0. Returning 0 cards...")
+		fmt.Println("")
+		quantity = 0
+	}
+
+	randomCollection := []Card{}
 
 	for i := 0; i < quantity; i++ {
 		randomCardNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(collection))))
 		cardNumber := int(randomCardNumber.Int64())
 		randomCard := collection[cardNumber]
-		randomCollection = append(randomCollection, randomCard)
 		collection = slices.Delete(collection, cardNumber, cardNumber+1)
+
+		//checking for cards that shouldn't be drawn
+		if slices.Contains(s.config.Exceptions, randomCard.Name) {
+			//fmt.Println(randomCard.Name)
+			i -= 1
+			continue
+		}
+
+		randomCollection = append(randomCollection, randomCard)
 	}
 
 	return randomCollection
@@ -50,10 +57,10 @@ func generateOnePack(s *state, setName string, cardsInPack map[string]int) error
 		return err
 	}
 
-	cardsOrdinary := []database.Card{}
-	cardsExceptional := []database.Card{}
-	cardsElite := []database.Card{}
-	cardsUnique := []database.Card{}
+	cardsOrdinary := []Card{}
+	cardsExceptional := []Card{}
+	cardsElite := []Card{}
+	cardsUnique := []Card{}
 
 	for _, setCard := range set {
 		card, err := s.database.GetCard(context.Background(), setCard.CardID)
@@ -63,37 +70,43 @@ func generateOnePack(s *state, setName string, cardsInPack map[string]int) error
 
 		rarity := card.Rarity
 
+		cardClean := Card{
+			Name:   card.Name,
+			Rarity: rarity,
+			Type:   card.Type,
+		}
+
 		switch rarity {
 		case "Ordinary":
-			cardsOrdinary = append(cardsOrdinary, card)
+			cardsOrdinary = append(cardsOrdinary, cardClean)
 		case "Exceptional":
-			cardsExceptional = append(cardsExceptional, card)
+			cardsExceptional = append(cardsExceptional, cardClean)
 		case "Elite":
-			cardsElite = append(cardsElite, card)
+			cardsElite = append(cardsElite, cardClean)
 		case "Unique":
 			if setName == "Arthurian Legends" && slices.Contains(s.config.ALSirs, card.Name) {
-				cardsElite = append(cardsElite, card)
+				cardsElite = append(cardsElite, cardClean)
 				continue
 			}
-			cardsUnique = append(cardsUnique, card)
+			cardsUnique = append(cardsUnique, cardClean)
 		default:
 			return errors.New("Unknown rarity was found!")
 		}
 	}
 
 	if slices.Contains(s.config.MiniSets, setName) {
-		fmt.Printf("There is no pack for %s set!\n", setName)
+		fmt.Printf("Can't generate pack for %s mini-set! Use \"generate -s all\" to generate pack to include all the cards\n", setName)
 	} else {
-		pack := getRandomCardsFromCollection(cardsOrdinary, cardsInPack["Ordinary"])
-		pack = append(pack, getRandomCardsFromCollection(cardsExceptional, cardsInPack["Exceptional"])...)
-		pack = append(pack, getRandomCardsFromCollection(cardsElite, cardsInPack["Elite"])...)
-		pack = append(pack, getRandomCardsFromCollection(cardsUnique, cardsInPack["Unique"])...)
+		pack := getRandomCardsFromCollection(s, cardsOrdinary, cardsInPack["Ordinary"])
+		pack = append(pack, getRandomCardsFromCollection(s, cardsExceptional, cardsInPack["Exceptional"])...)
+		pack = append(pack, getRandomCardsFromCollection(s, cardsElite, cardsInPack["Elite"])...)
+		pack = append(pack, getRandomCardsFromCollection(s, cardsUnique, cardsInPack["Unique"])...)
 
 		fmt.Printf("Random pack from %s set:\n", setName)
 		fmt.Println("")
 
 		for _, card := range pack {
-			fmt.Printf("%-20v | %-10v | %-15v\n", card.Name, card.Type, card.Rarity)
+			fmt.Printf("%-25v | %-10v | %-15v\n", card.Name, card.Type, card.Rarity)
 		}
 	}
 
@@ -126,12 +139,11 @@ func generateOnePackAll(s *state, cardsInPack map[string]int) error {
 		setName := strings.Join(setNames, " / ")
 
 		cardClean := Card{
-			Name: card.Name,
+			Name:   card.Name,
 			Rarity: rarity,
-			Type: card.Type,
-			Sets: setName,
+			Type:   card.Type,
+			Sets:   setName,
 		}
-
 
 		switch rarity {
 		case "Ordinary":
@@ -141,22 +153,26 @@ func generateOnePackAll(s *state, cardsInPack map[string]int) error {
 		case "Elite":
 			cardsElite = append(cardsElite, cardClean)
 		case "Unique":
+			if setName == "Arthurian Legends" && slices.Contains(s.config.ALSirs, card.Name) {
+				cardsElite = append(cardsElite, cardClean)
+				continue
+			}
 			cardsUnique = append(cardsUnique, cardClean)
 		default:
 			return errors.New("Unknown rarity was found!")
 		}
 	}
 
-	pack := getRandomCardsFromCollection(cardsOrdinary, cardsInPack["Ordinary"])
-	pack = append(pack, getRandomCardsFromCollection(cardsExceptional, cardsInPack["Exceptional"])...)
-	pack = append(pack, getRandomCardsFromCollection(cardsElite, cardsInPack["Elite"])...)
-	pack = append(pack, getRandomCardsFromCollection(cardsUnique, cardsInPack["Unique"])...)
+	pack := getRandomCardsFromCollection(s, cardsOrdinary, cardsInPack["Ordinary"])
+	pack = append(pack, getRandomCardsFromCollection(s, cardsExceptional, cardsInPack["Exceptional"])...)
+	pack = append(pack, getRandomCardsFromCollection(s, cardsElite, cardsInPack["Elite"])...)
+	pack = append(pack, getRandomCardsFromCollection(s, cardsUnique, cardsInPack["Unique"])...)
 
 	fmt.Println("Random pack from all sets:")
 	fmt.Println("")
 
 	for _, card := range pack {
-		fmt.Printf("%-20v | %-10v | %-15v | %-10v\n", card.Name, card.Type, card.Rarity, card.Sets)
+		fmt.Printf("%-25v | %-10v | %-15v | %-10v\n", card.Name, card.Type, card.Rarity, card.Sets)
 	}
 
 	return nil

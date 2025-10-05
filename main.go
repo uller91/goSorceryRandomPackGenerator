@@ -13,12 +13,13 @@ import (
 )
 
 type config struct {
-	BaseUrl  string
-	Sets     []string
-	Types    []string
-	Rarities []string
-	ALSirs   []string
-	MiniSets []string
+	BaseUrl    string
+	Sets       []string
+	Types      []string
+	Rarities   []string
+	ALSirs     []string
+	MiniSets   []string
+	Exceptions []string
 }
 
 func main() {

@@ -43,9 +43,10 @@ func (s *state) updateConfig() error {
 	s.config.Rarities = []string{"Ordinary", "Exceptional", "Elite", "Unique"}
 	s.config.ALSirs = []string{"Dame Britomart", "Sir Agravaine", "Sir Balin", "Sir Bedivere", "Sir Bors the Younger", "Sir Gaheris", "Sir Gawain", "Sir Ironside", "Sir Kay", "Sir Lamorak", "Sir Morien", "Sir Pelleas", "Sir Perceval", "Sir Priamus", "Sir Tom Thumb", "Sir Tristan"}
 	s.config.MiniSets = []string{"Dragonlord"}
+	s.config.Exceptions = []string{"Relentless Crowd", "Winter River", "Erik's Curiosa", "Spellslinger", "Spire", "Stream", "Valley", "Wasteland"}
 	//cards to be excluded:
 	//Alpha: Relentless Crowd, Winter River, Erik's Curiosa
-	//Beta: Spellslinger, Spire, Stream, Valley, Wasteland?
+	//Beta: Spellslinger, Spire, Stream, Valley, Wasteland
 
 	return nil
 }

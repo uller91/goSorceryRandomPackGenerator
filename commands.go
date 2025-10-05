@@ -12,7 +12,6 @@ import (
 	"math/big"
 	"slices"
 	"time"
-	"strings"
 )
 
 type state struct {
@@ -48,6 +47,12 @@ func (c *commands) run(s *state, cmd command) error {
 func (c *commands) register(name string, f func(*state, command) error, d string) {
 	c.handlers[name] = f
 	c.descriptions[name] = d
+}
+
+func addToCollection(origin *[]string, collection *[]string, item string) {
+	if !slices.Contains(*origin, item) && !slices.Contains(*collection, item) {
+		*collection = append(*collection, item)
+	}
 }
 
 // Help
@@ -258,7 +263,7 @@ func handlerReset(s *state, cmd command) error {
 
 // Open
 const (
-	descriptionGenerate = "Generates a card pack from a random Sorcery TCG set"
+	descriptionGenerate = "Generates a random card pack from Sorcery TCG"
 )
 
 func handlerGenerate(s *state, cmd command) error {
@@ -271,75 +276,39 @@ func handlerGenerate(s *state, cmd command) error {
 		return errors.New("The DB is empty! Use \"update\" command to fill the DB with cards")
 	}
 
-	//setting the set
-	set := ""
-	if len(cmd.arguments) == 0 {
-		randomSetNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(s.config.Sets))))
-		set = s.config.Sets[int(randomSetNumber.Int64())]
+	//setting the set, tag -s
+	set, err := setSet(s, cmd)
+	if err != nil {
+		return err
 	}
 
-	if tag := slices.Index(cmd.arguments, "-s"); tag != -1 {
-		if len(cmd.arguments) >= tag+2 {
-			set = cmd.arguments[tag+1]
+	//setting number of cards in the pack, tag -p
+	cardsInPack, err := setPack(cmd)
+	if err != nil {
+		return err
+	}
 
-			switch strings.ToUpper(set) {
-			case "A":
-				set = "Alpha"
-			case "B":
-				set = "Beta"
-			case "AL":
-				set = "Arthurian Legends"
-			//add more at apropiate release
+	//"foils" in the pack, tag -f
+	if tag := slices.Index(cmd.arguments, "-f"); tag != -1 {
+		//25% of "foil"
+		foilProbability, _ := rand.Int(rand.Reader, big.NewInt(int64(4)))
+		//"foil" distribution: 7/17 ordinary, 6/17 exceptional, 3/17 elite, 1/17 unique
+		if foilProbability.Int64() == 0 {
+			whichFoilProbability, _ := rand.Int(rand.Reader, big.NewInt(int64(17)))
+			if whichFoilProbability.Int64() == 0 {
+				cardsInPack["Ordinary"] -= 1
+				cardsInPack["Unique"] += 1
+			} else if whichFoilProbability.Int64() < 4 {
+				cardsInPack["Ordinary"] -= 1
+				cardsInPack["Elite"] += 1
+			} else if whichFoilProbability.Int64() < 10 {
+				cardsInPack["Ordinary"] -= 1
+				cardsInPack["Exceptional"] += 1
 			}
-			
-			if !slices.Contains(s.config.Sets, strings.Title(set)) && set != "all" && set != "random" {
-				fmt.Println("No such set in DB! Generating the random pack...")
-				set = "random"
-			} 
-	
-			if set == "random" {
-				randomSetNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(s.config.Sets))))
-				set = s.config.Sets[int(randomSetNumber.Int64())]
-			}
-			
-		} else {
-			return errors.New("No set name given after -s tag")
 		}
 	}
 
-	//setting number of cards in the pack
-	//add consideration for the 1st card in the set (alpha/beta at the moment) to only be avatar or site? 
-	cardsInPack := map[string]int{
-		"Ordinary":    11,
-		"Exceptional": 3,
-		"Elite": 0,
-		"Unique": 0,
-	}
-	//20% of unique
-	uniqueProbability, _ := rand.Int(rand.Reader, big.NewInt(int64(5)))
-	if uniqueProbability.Int64() == 0 {
-		cardsInPack["Unique"] += 1
-	} else {
-		cardsInPack["Elite"] += 1
-	}
-	//25% of foil
-	foilProbability, _ := rand.Int(rand.Reader, big.NewInt(int64(4)))
-	//"foil" distribution: 7/17 ordinary, 6/17 exceptional, 3/17 elite, 1/17 unique
-	if foilProbability.Int64() == 0 {
-		whichFoilProbability, _ := rand.Int(rand.Reader, big.NewInt(int64(17)))
-		if whichFoilProbability.Int64() == 0 {
-			cardsInPack["Ordinary"] -= 1
-			cardsInPack["Unique"] += 1
-		} else if whichFoilProbability.Int64() < 4 {
-			cardsInPack["Ordinary"] -= 1
-			cardsInPack["Elite"] += 1
-		} else if whichFoilProbability.Int64() < 10 {
-			cardsInPack["Ordinary"] -= 1
-			cardsInPack["Exceptional"] += 1
-		}
-	}
-
-	if set == "all" {
+	if set == "All" {
 		return generateOnePackAll(s, cardsInPack)
 	} else {
 		return generateOnePack(s, set, cardsInPack)
