@@ -3,10 +3,10 @@ package main
 import (
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"math/big"
 	"slices"
 	"strings"
-	"fmt"
 )
 
 func setStandardPack() map[string]int {
@@ -50,19 +50,19 @@ func setPack(cmd command) (map[string]int, error) {
 				}
 			case "Ordinary", "O":
 				cardsInPack = map[string]int{
-					"Ordinary":    15,
+					"Ordinary": 15,
 				}
 			case "Exceptional", "X":
 				cardsInPack = map[string]int{
-					"Exceptional":    15,
+					"Exceptional": 15,
 				}
 			case "Elite", "E":
 				cardsInPack = map[string]int{
-					"Elite":    15,
+					"Elite": 15,
 				}
 			case "Unique", "U":
 				cardsInPack = map[string]int{
-					"Unique":    15,
+					"Unique": 15,
 				}
 			case "Custom":
 				var o int
@@ -111,7 +111,7 @@ func setPack(cmd command) (map[string]int, error) {
 					"Exceptional": x,
 					"Elite":       e,
 					"Unique":      u,
-				} 
+				}
 			default:
 				cardsInPack = setStandardPack()
 			}

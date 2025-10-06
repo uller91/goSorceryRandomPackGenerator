@@ -1,17 +1,28 @@
 package main
 
 import (
-	"slices"
-	"strings"
 	"crypto/rand"
 	"errors"
-	"math/big"
 	"fmt"
+	"math/big"
+	"slices"
+	"strings"
 )
+
+func getNonMiniSet(s *state) string {
+	randomSetNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(s.config.Sets))))
+	set := s.config.Sets[int(randomSetNumber.Int64())]
+	fmt.Println(set)
+	if slices.Contains(s.config.MiniSets, set) {
+		return getNonMiniSet(s)
+	} else {
+		return set
+	}
+}
 
 func setSet(s *state, cmd command) (string, error) {
 	set := ""
-	
+
 	if tag := slices.Index(cmd.arguments, "-s"); tag != -1 {
 		if len(cmd.arguments) >= tag+2 && cmd.arguments[tag+1][0:1] != "-" {
 			set = strings.Title(cmd.arguments[tag+1])
@@ -32,8 +43,8 @@ func setSet(s *state, cmd command) (string, error) {
 			}
 
 			if set == "Random" {
-				randomSetNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(s.config.Sets))))
-				set = s.config.Sets[int(randomSetNumber.Int64())]
+				//to ignore mini-sets which only contain uniques
+				set = getNonMiniSet(s)
 			}
 
 			return set, nil
@@ -42,8 +53,7 @@ func setSet(s *state, cmd command) (string, error) {
 			return "", errors.New("No set name given after -s tag")
 		}
 	} else {
-		randomSetNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(s.config.Sets))))
-		set = s.config.Sets[int(randomSetNumber.Int64())]
+		set = getNonMiniSet(s)
 	}
 
 	return set, nil

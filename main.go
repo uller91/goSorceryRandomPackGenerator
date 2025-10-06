@@ -51,20 +51,8 @@ func main() {
 	cmds.register("reset", handlerReset, descriptionReset)
 	cmds.register("generate", handlerGenerate, descriptionGenerate)
 
-	//single command test
-	/*
-		cmd := command{name: "help"}
-		err := cmds.run(&st, cmd)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-	*/
-
 	args := os.Args[:]
 	if len(args) < 2 {
-		//err := fmt.Errorf("Not enough arguments")
-		//fmt.Println(err.Error())
 		fmt.Println("Welcome to the Sorcery TCG Random Pack Generator. To see the list of available commands use the \"help\" command.")
 		os.Exit(0)
 	}

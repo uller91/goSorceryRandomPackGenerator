@@ -19,13 +19,6 @@ type Card struct {
 	Type      string
 }
 
-type Raritylist struct {
-	ID        uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Name      string
-}
-
 type Set struct {
 	ID        uuid.UUID
 	CreatedAt time.Time
@@ -35,13 +28,6 @@ type Set struct {
 }
 
 type Setlist struct {
-	ID        uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Name      string
-}
-
-type Typelist struct {
 	ID        uuid.UUID
 	CreatedAt time.Time
 	UpdatedAt time.Time

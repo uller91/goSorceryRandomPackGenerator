@@ -40,7 +40,6 @@ func getRandomCardsFromCollection(s *state, collection []Card, quantity int) []C
 
 		//checking for cards that shouldn't be drawn
 		if slices.Contains(s.config.Exceptions, randomCard.Name) {
-			//fmt.Println(randomCard.Name)
 			i -= 1
 			continue
 		}
@@ -95,6 +94,7 @@ func generateOnePack(s *state, setName string, cardsInPack map[string]int) error
 	}
 
 	if slices.Contains(s.config.MiniSets, setName) {
+		//redundant but will leave it here for now. Just in case
 		fmt.Printf("Can't generate pack for %s mini-set! Use \"generate -s all\" to generate pack to include all the cards\n", setName)
 	} else {
 		pack := getRandomCardsFromCollection(s, cardsOrdinary, cardsInPack["Ordinary"])

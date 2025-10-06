@@ -2,14 +2,12 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/uller91/goSorceryDraftDB/internal/apiInter"
 	"github.com/uller91/goSorceryDraftDB/internal/database"
-	"math/big"
 	"slices"
 	"time"
 )
@@ -100,8 +98,6 @@ func handlerUpdate(s *state, cmd command) error {
 	}
 
 	var newSets []string
-	var newTypes []string
-	var newRarities []string
 
 	fmt.Println("Initializing card DB update...")
 	fmt.Println("")
@@ -128,17 +124,12 @@ func handlerUpdate(s *state, cmd command) error {
 		cardCreated, err := s.database.CreateCard(context.Background(), paramCard)
 		if err != nil {
 			if pqError, ok := err.(*pq.Error); ok && pqError.Code == "23505" {
-				//fmt.Printf("%v card already exist in DB\n", card.Name)
 				cardsUpdated += 1
 			} else {
 				return err
 			}
 		} else {
-			//fmt.Printf("\"%v\" added in the DB\n", cardCreated.Name)
 			cardsAdded += 1
-
-			addToCollection(&s.config.Types, &newTypes, cardCreated.Type)
-			addToCollection(&s.config.Rarities, &newRarities, cardCreated.Rarity)
 		}
 
 		//add set+card
@@ -153,17 +144,10 @@ func handlerUpdate(s *state, cmd command) error {
 				} else {
 					return err
 				}
-			} /* else {
-				fmt.Printf("Combination of Set: \"%v\" and Card: \"%v\" added in the Sets table\n", setCardCreated.Name, cardCreated.Name)
-			} */
-
+			}
 			addToCollection(&s.config.Sets, &newSets, set.Name)
 		}
 	}
-
-	//fmt.Println(newTypes)
-	//fmt.Println(newRarities)
-	//fmt.Println(newSets)
 
 	//add new sets
 	if newSets != nil {
@@ -180,41 +164,10 @@ func handlerUpdate(s *state, cmd command) error {
 		}
 	}
 
-	//add new types
-	if newTypes != nil {
-		for _, tpe := range newTypes {
-			paramType := database.CreateTypeParams{ID: uuid.New(), CreatedAt: time.Now(), UpdatedAt: time.Now(), Name: tpe}
-			_, err := s.database.CreateType(context.Background(), paramType)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	//add new rarities
-	if newRarities != nil {
-		for _, rarity := range newRarities {
-			paramType := database.CreateRarityParams{ID: uuid.New(), CreatedAt: time.Now(), UpdatedAt: time.Now(), Name: rarity}
-			_, err := s.database.CreateRarity(context.Background(), paramType)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
 	fmt.Println("")
 	fmt.Printf("Cards added in the DB: %v\n", cardsAdded)
 	fmt.Printf("Cards already in the DB: %v\n", cardsUpdated)
 	fmt.Println("")
-
-	//Apprentice Wizard
-	/*
-		fmt.Println("Card found:")
-		fmt.Println(cards[0].Name)
-		fmt.Println(cards[0].Guardian.Rarity)
-		fmt.Println(cards[0].Guardian.Type)
-		fmt.Println(cards[0].Sets[0].Name)
-	*/
 
 	fmt.Println("SorceryDB update finished successfully")
 
@@ -231,17 +184,7 @@ func handlerReset(s *state, cmd command) error {
 		return errors.New("0 arguments are expected")
 	}
 
-	err := s.database.RaritylistReset(context.Background())
-	if err != nil {
-		return err
-	}
-
-	err = s.database.TypelistReset(context.Background())
-	if err != nil {
-		return err
-	}
-
-	err = s.database.SetlistReset(context.Background())
+	err := s.database.SetlistReset(context.Background())
 	if err != nil {
 		return err
 	}
@@ -289,24 +232,7 @@ func handlerGenerate(s *state, cmd command) error {
 	}
 
 	//"foils" in the pack, tag -f
-	if tag := slices.Index(cmd.arguments, "-f"); tag != -1 {
-		//25% of "foil"
-		foilProbability, _ := rand.Int(rand.Reader, big.NewInt(int64(4)))
-		//"foil" distribution: 7/17 ordinary, 6/17 exceptional, 3/17 elite, 1/17 unique
-		if foilProbability.Int64() == 0 {
-			whichFoilProbability, _ := rand.Int(rand.Reader, big.NewInt(int64(17)))
-			if whichFoilProbability.Int64() == 0 {
-				cardsInPack["Ordinary"] -= 1
-				cardsInPack["Unique"] += 1
-			} else if whichFoilProbability.Int64() < 4 {
-				cardsInPack["Ordinary"] -= 1
-				cardsInPack["Elite"] += 1
-			} else if whichFoilProbability.Int64() < 10 {
-				cardsInPack["Ordinary"] -= 1
-				cardsInPack["Exceptional"] += 1
-			}
-		}
-	}
+	cardsInPack, _ = setFoil(cardsInPack, cmd)
 
 	if set == "All" {
 		return generateOnePackAll(s, cardsInPack)
