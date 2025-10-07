@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	"github.com/uller91/goSorceryDraftDB/internal/apiInter"
-	"github.com/uller91/goSorceryDraftDB/internal/database"
+	"github.com/uller91/sorceryPackGen/internal/apiInter"
+	"github.com/uller91/sorceryPackGen/internal/database"
 	"slices"
 	"time"
 )
@@ -53,6 +53,22 @@ func addToCollection(origin *[]string, collection *[]string, item string) {
 	}
 }
 
+// Version
+
+const (
+	descriptionVersion = "Shows the current version of the app"
+)
+
+func handlerVersion(s *state, cmd command) error {
+	if len(cmd.arguments) != 0 {
+		return errors.New("0 arguments are expected")
+	}
+	
+	fmt.Println("1.0.0")
+	return nil
+}
+
+
 // Help
 const (
 	descriptionHelp = "Shows the list of commands (\"help\") or their description (\"help command_name\")"
@@ -62,14 +78,20 @@ func handlerHelp(s *state, cmd command) error {
 	if len(cmd.arguments) == 0 {
 		fmt.Println("List of available commands:")
 		fmt.Println("")
+		commandNames := []string{}
 		for command, _ := range s.commands.handlers {
-			fmt.Println(command)
+			commandNames = append(commandNames, command)
+		}
+		slices.Sort(commandNames)
+		for _, name := range commandNames {
+			fmt.Println(name)
 		}
 		fmt.Println("")
-		fmt.Println("To show the command description use \"help command\"")
+		fmt.Println("To show the command's description use \"help command_name\"")
 	} else if len(cmd.arguments) == 1 {
 		if discription, ok := s.commands.descriptions[cmd.arguments[0]]; ok {
 			fmt.Printf("Command \"%s\"\n", cmd.arguments[0])
+			fmt.Println("")
 			fmt.Println(discription)
 		} else {
 			return errors.New("No command with this name is registered")
@@ -81,9 +103,38 @@ func handlerHelp(s *state, cmd command) error {
 	return nil
 }
 
+// Sets
+const (
+	descriptionSets = "Shows the list of sets available in the DB"
+)
+
+func handlerSets(s *state, cmd command) error {
+	if len(cmd.arguments) != 0 {
+		return errors.New("0 arguments are expected")
+	}
+	
+	err := s.updateConfig()
+	if err != nil {
+		return err
+	}
+
+	if len(s.config.Sets) == 0 {
+		fmt.Println("The DB is empty! Use \"update\" command to fill the DB with cards")
+	} else {
+		fmt.Println("List of sets in the DB:")
+		fmt.Println("")
+		for _, set := range s.config.Sets {
+			fmt.Println(set)
+		}
+	}
+	
+
+	return nil
+}
+
 // Update
 const (
-	descriptionUpdate = "Updates an internal card DB sending the API requiest to \"api.sorcerytcg.com\""
+	descriptionUpdate = "Updates an internal card DB by sending the API requiest to \"api.sorcerytcg.com\""
 )
 
 // current db size = 649
@@ -206,7 +257,65 @@ func handlerReset(s *state, cmd command) error {
 
 // Open
 const (
-	descriptionGenerate = "Generates a random card pack from Sorcery TCG"
+	descriptionGenerate = `Generates (prints) a number of random card packs from Sorcery TCG
+By default generates one standard pack (15 cards: 11 Ordinary, 3 Exceptional, and 1 Elite (or Unique instead with 20% chance))
+
+Available tags:
+-n number
+	Changes the number of packs to generate. Only accepts positive integers.
+	If number > 1 the program will wait before displaying each pack (click Enter to open a pack).
+	When multiple packs are generated it is considered that you have a "full collection",
+	i.e. 4x of each Ordinary, 3x of each Exceptional, 2x of each Elite and 1x of each Unique card.
+	The program can't generate more packs that there are cards available in the collection.
+	In case of multiple packs generated, all of them will have the same pack content (see -p tag).
+
+-s "set_name"
+	Changes the set from which packs are generated. Accepts full name of the set (you can use "sets" command to see the full list)
+	or their abbreviation as well as some additional variants:
+		a
+			"Alpha"
+		b	
+			"Beta"
+		al	
+			"Arthurian Legends"
+		d	
+			"Dragonlord" (can't be used at the moment since it consists of only unique cards)
+		"All" 
+			generates the pack from all the cards available in the DB. Expect pure lack of synergy. But it will be fun!
+		"Random" and anything else
+			generates a pack from the random sets (similar to not using -s tag at all)
+
+-p "pack_type"
+	Changes the content of the pack (number of cards of different rarities).
+	Available configurations:
+		Standard
+			Standard Sorcery TCG pack (11 Ordinary, 3 Exceptional, and 1 Elite (or Unique instead with 20% chance))
+		Pauper
+			Pack which only includes Ordinary and Exceptional (11 Ordinary, 4 Expectional)
+		Pyramid
+			Pack with the more even (to rarity) cards distribution (8 Ordinary, 4 Exceptional, 2 Elite, 1 Unique)
+		Ordinary, Exceptional, Elite, Unique
+			15 cards pack with only given rarity
+		Custom
+			Allows you to set the sumber of Ordinary, Exceptional, Elite, and Unique cards in thep pack
+			The program will ask you to write the number of cards of each corresponding rarity. Only works with integers.
+		Random and anything else
+			15 cards pack with the random number of cards of different rarities
+
+-f	
+	Adds the possibility of the "foil" card in the pack.
+	In terms of this program, this tag adds 25% chance of one ordinary card to be "foil" of any rarity.
+
+
+The following cards are excluded from generated packs:
+	Alpha: Relentless Crowd, Winter River, Erik's Curiosa
+	Beta: Spellslinger, Spire, Stream, Valley, Wasteland
+	
+One additional thing to consider. AL set has a set of Unique Sir/Dame cards which are actually Elite in terms of rarity.
+Here they are considered to have Elite rarity. 
+	List of Elite Sir/Dame cards:
+		Dame Britomart, Sir Agravaine, Sir Balin, Sir Bedivere, Sir Bors the Younger, Sir Gaheris, Sir Gawain, Sir Ironside,
+		Sir Kay, Sir Lamorak, Sir Morien, Sir Pelleas, Sir Perceval, Sir Priamus, Sir Tom Thumb, Sir Tristan`
 )
 
 func handlerGenerate(s *state, cmd command) error {
@@ -234,10 +343,18 @@ func handlerGenerate(s *state, cmd command) error {
 	//"foils" in the pack, tag -f
 	cardsInPack, _ = setFoil(cardsInPack, cmd)
 
+	//setting the number of packs
+	numberOfPacks, err := setNumber(cmd)
+	if err != nil {
+		return err
+	}
+
 	if set == "All" {
-		return generateOnePackAll(s, cardsInPack)
+		return generateMultiplePacksAll(s, cardsInPack, numberOfPacks)
+		//return generateOnePackAll(s, cardsInPack)
 	} else {
-		return generateOnePack(s, set, cardsInPack)
+		return generateMiltiplePacks(s, set, cardsInPack, numberOfPacks)
+		//return generateOnePack(s, set, cardsInPack)
 	}
 
 	return nil

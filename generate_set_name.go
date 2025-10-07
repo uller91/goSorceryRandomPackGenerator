@@ -12,7 +12,7 @@ import (
 func getNonMiniSet(s *state) string {
 	randomSetNumber, _ := rand.Int(rand.Reader, big.NewInt(int64(len(s.config.Sets))))
 	set := s.config.Sets[int(randomSetNumber.Int64())]
-	fmt.Println(set)
+	//fmt.Println(set)
 	if slices.Contains(s.config.MiniSets, set) {
 		return getNonMiniSet(s)
 	} else {
@@ -50,7 +50,7 @@ func setSet(s *state, cmd command) (string, error) {
 			return set, nil
 
 		} else {
-			return "", errors.New("No set name given after -s tag")
+			return "", errors.New("No set name was given after -s tag")
 		}
 	} else {
 		set = getNonMiniSet(s)

@@ -6,8 +6,8 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/joho/godotenv"
-	"github.com/uller91/goSorceryDraftDB/internal/apiInter"
-	"github.com/uller91/goSorceryDraftDB/internal/database"
+	"github.com/uller91/sorceryPackGen/internal/apiInter"
+	"github.com/uller91/sorceryPackGen/internal/database"
 	"os"
 	"strings"
 )
@@ -47,9 +47,11 @@ func main() {
 	st.commands = &cmds
 
 	cmds.register("help", handlerHelp, descriptionHelp)
+	cmds.register("version", handlerVersion, descriptionVersion)
 	cmds.register("update", handlerUpdate, descriptionUpdate)
 	cmds.register("reset", handlerReset, descriptionReset)
 	cmds.register("generate", handlerGenerate, descriptionGenerate)
+	cmds.register("sets", handlerSets, descriptionSets)
 
 	args := os.Args[:]
 	if len(args) < 2 {

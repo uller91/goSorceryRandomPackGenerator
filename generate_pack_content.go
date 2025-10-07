@@ -117,7 +117,7 @@ func setPack(cmd command) (map[string]int, error) {
 			}
 
 		} else {
-			return nil, errors.New("No set name given after -p tag")
+			return nil, errors.New("No pack configuration was given after -p tag")
 		}
 	} else {
 		cardsInPack = setStandardPack()
