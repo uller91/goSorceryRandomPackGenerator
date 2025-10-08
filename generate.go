@@ -203,10 +203,9 @@ func generateMiltiplePacks(s *state, setName string, cardsInPack map[string]int,
 		}
 	}
 
-	if len(cardsOrdinary) * 4 < cardsInPack["Ordinary"] * packsQuantity || len(cardsExceptional) * 3 < cardsInPack["Exceptional"] * packsQuantity || len(cardsElite) * 2 < cardsInPack["Elite"] * packsQuantity || len(cardsUnique) * 1 < cardsInPack["Unique"] * packsQuantity {
+	if len(cardsOrdinary)*4 < cardsInPack["Ordinary"]*packsQuantity || len(cardsExceptional)*3 < cardsInPack["Exceptional"]*packsQuantity || len(cardsElite)*2 < cardsInPack["Elite"]*packsQuantity || len(cardsUnique)*1 < cardsInPack["Unique"]*packsQuantity {
 		return errors.New("You are trying to generate too many packs... or a single pack which is too big!")
 	}
-
 
 	if slices.Contains(s.config.MiniSets, setName) {
 		//redundant but will leave it here for now. Just in case
@@ -246,7 +245,7 @@ func generateMiltiplePacks(s *state, setName string, cardsInPack map[string]int,
 		for _, pack := range packs {
 			if packsQuantity > 1 {
 				fmt.Println("Press the Enter to see the content of the next pack...")
-    			fmt.Scanln() // wait for Enter Key
+				fmt.Scanln() // wait for Enter Key
 			}
 
 			for _, card := range pack {
@@ -254,7 +253,7 @@ func generateMiltiplePacks(s *state, setName string, cardsInPack map[string]int,
 			}
 			fmt.Println("")
 		}
-		
+
 	}
 
 	return nil
@@ -358,17 +357,17 @@ func generateMultiplePacksAll(s *state, cardsInPack map[string]int, packsQuantit
 	//finish
 
 	/*
-	pack := getRandomCardsFromCollection(s, cardsOrdinary, cardsInPack["Ordinary"])
-	pack = append(pack, getRandomCardsFromCollection(s, cardsExceptional, cardsInPack["Exceptional"])...)
-	pack = append(pack, getRandomCardsFromCollection(s, cardsElite, cardsInPack["Elite"])...)
-	pack = append(pack, getRandomCardsFromCollection(s, cardsUnique, cardsInPack["Unique"])...)
+		pack := getRandomCardsFromCollection(s, cardsOrdinary, cardsInPack["Ordinary"])
+		pack = append(pack, getRandomCardsFromCollection(s, cardsExceptional, cardsInPack["Exceptional"])...)
+		pack = append(pack, getRandomCardsFromCollection(s, cardsElite, cardsInPack["Elite"])...)
+		pack = append(pack, getRandomCardsFromCollection(s, cardsUnique, cardsInPack["Unique"])...)
 
-	fmt.Println("Random pack from all sets:")
-	fmt.Println("")
+		fmt.Println("Random pack from all sets:")
+		fmt.Println("")
 
-	for _, card := range pack {
-		fmt.Printf("%-25v | %-10v | %-15v | %-10v\n", card.Name, card.Type, card.Rarity, card.Sets)
-	} */
+		for _, card := range pack {
+			fmt.Printf("%-25v | %-10v | %-15v | %-10v\n", card.Name, card.Type, card.Rarity, card.Sets)
+		} */
 
 	return nil
 }

@@ -63,11 +63,10 @@ func handlerVersion(s *state, cmd command) error {
 	if len(cmd.arguments) != 0 {
 		return errors.New("0 arguments are expected")
 	}
-	
+
 	fmt.Println("1.0.0")
 	return nil
 }
-
 
 // Help
 const (
@@ -112,7 +111,7 @@ func handlerSets(s *state, cmd command) error {
 	if len(cmd.arguments) != 0 {
 		return errors.New("0 arguments are expected")
 	}
-	
+
 	err := s.updateConfig()
 	if err != nil {
 		return err
@@ -127,7 +126,6 @@ func handlerSets(s *state, cmd command) error {
 			fmt.Println(set)
 		}
 	}
-	
 
 	return nil
 }
