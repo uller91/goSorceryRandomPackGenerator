@@ -25,6 +25,10 @@ type config struct {
 func main() {
 	godotenv.Load()
 	dbURL := os.Getenv("CONNECTION_STRING")
+	if dbURL == "" {
+		fmt.Println("The connection string to PostgreSQL DB is empty! Make new .env file and add 'CONNECTION_STRING=\"*DB_connectionstring*\"' into it")
+		os.Exit(1)
+	}
 
 	var cfg config
 	var st state

@@ -41,13 +41,13 @@ Scorched Earth            | Magic      | Elite
 2. PostgreSQL database. Available [here](https://webinstall.dev/postgres/) or [here](https://learn.microsoft.com/en-us/windows/wsl/tutorials/wsl-database#install-postgresql)
 3. Goose CLI DB migration tool. Available [here](https://github.com/pressly/goose#install)
 
-## Installation
+## Quick Start
 
 1. Clone the repo:
 
        git clone https://github.com/uller91/sorceryPackGen.git
 
-2. Set-up **postgreSQL DB** inside the **sorceryPackGen** directory.
+2. Set-up **postgreSQL** DB for **sorceryPackGen** cards DB.
 3. Copy the content of **.env_example** into a new **.env** file changing the **example connection string** to the one for the **postgreSQL DB** you just set-up.
 4. Perform the DB migration in from the same dirrectory using the command below:
         
@@ -57,10 +57,6 @@ Scorched Earth            | Magic      | Elite
 
        go install
 
-   or build the app:
-
-       go build
-
 6. Check that the app was installed properly:
 
        sorceryPackGen version
@@ -69,15 +65,21 @@ Scorched Earth            | Magic      | Elite
 
        sorceryPackGen update
 
-8. Enjoy!
+8. Generate your first card pack:
+
+       sorceryPackGen generate
 
 ## Usage
 
-* `sorceryPackGen help` to see the list of all available commands.
+* To see the list of all available commands.
+       sorceryPackGen help
 * `sorceryPackGen generate` to generate one standard 15 cards pack from random Sorcery TCG set. 
 * `sorceryPackGen help generate` to see the list of all available pack generation options.
 
-## Future plans and contributions
+## Contributing
+
+If you'd like to contribute to this project, feel free to fork the repo and submit pull requests for bug fixes, enhancements, or documentation improvements to the **main** brunch.
+
+## Future plans
 
 Future plans include support of all future Sorcery TCG as well as custom card collections.
-I welcome contributions to this project! Feel free to fork the repo and submit pull requests for bug fixes, enhancements, or documentation improvements.
